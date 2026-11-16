@@ -1,0 +1,55 @@
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
+import { ApiError } from "../utils/ApiError.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+
+export const protect = asyncHandler(async (req, res, next) => {
+  const header = req.headers.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  if (!token) throw new ApiError(401, "Not authenticated");
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch {
+    throw new ApiError(401, "Invalid or expired token");
+  }
+
+  const user = await User.findById(decoded.id);
+  if (!user || !user.isActive) throw new ApiError(401, "User no longer exists or is deactivated");
+
+  req.user = user;
+  next();
+});
+
+export const authorize =
+  (...roles) =>
+  (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return next(new ApiError(403, "You do not have permission to do this"));
+    }
+    next();
+  };
+
+// Attaches req.user if a valid token is sent; otherwise continues as a guest
+export const optionalAuth = asyncHandler(async (req, res, next) => {
+  const header = req.headers.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.id);
+      if (user?.isActive) req.user = user;
+    } catch {
+      /* bad token → treat as guest */
+    }
+  }
+  next();
+});
+
+export const requirePhone = (req, res, next) => {
+  if (!req.user.phone) {
+    return next(new ApiError(403, "Please add your phone number first"));
+  }
+  next();
+};
