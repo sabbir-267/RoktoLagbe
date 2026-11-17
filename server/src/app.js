@@ -7,6 +7,7 @@ import authRoutes from "./routes/authRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 import donorRoutes from "./routes/donorRoutes.js";
 import bankRoutes from "./routes/bankRoutes.js";
+import requestRoutes from "./routes/requestRoutes.js";
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use("/api/health", healthRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/donors", donorRoutes);
 app.use("/api/banks", bankRoutes);
+app.use("/api/requests", requestRoutes);
 app.use(notFound);
 app.use(errorHandler);
 

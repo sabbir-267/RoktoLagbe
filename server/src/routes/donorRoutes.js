@@ -33,7 +33,10 @@ const profileRules = [
     .withMessage("Donors must be between 18 and 65 years old"),
   body("gender").optional().isIn(["male", "female", "other"]).withMessage("Invalid gender"),
   body("weightKg").optional().isFloat({ min: 45, max: 250 }).withMessage("Weight must be at least 45 kg"),
-  body("district").isString().trim().notEmpty().isLength({ max: 80 }).withMessage("District is required"),
+  body("district")
+  .isString().withMessage("District is required").bail()
+  .trim().notEmpty().withMessage("District is required").bail()
+  .isLength({ max: 80 }).withMessage("District is too long"),
   ...["division", "upazila", "area", "campus", "group"].map(optionalText),
   body("latitude").optional().isFloat({ min: -90, max: 90 }).withMessage("Invalid latitude"),
   body("longitude").optional().isFloat({ min: -180, max: 180 }).withMessage("Invalid longitude"),

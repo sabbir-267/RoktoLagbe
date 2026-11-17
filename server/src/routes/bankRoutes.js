@@ -28,7 +28,11 @@ const bankFields = (isCreate) => {
   return [
     opt(body("name")).trim().isLength({ min: 2, max: 120 }).withMessage("Name must be 2-120 characters"),
     opt(body("phone")).custom((v) => PHONE_RE.test(String(v))).withMessage("Enter a valid phone number"),
-    opt(body("district")).isString().trim().notEmpty().isLength({ max: 80 }).withMessage("District is required"),
+    opt(body("district"))
+  .isString().withMessage("District is required").bail()
+  .trim().notEmpty().withMessage("District is required").bail()
+  .isLength({ max: 80 }).withMessage("District is too long"),
+
     body("licenseNo").optional({ values: "falsy" }).isString().trim().isLength({ max: 60 }).withMessage("License number is too long"),
     body("email").optional({ values: "falsy" }).isEmail().withMessage("Invalid email address"),
     ...["division", "address", "openingHours"].map((f) =>
