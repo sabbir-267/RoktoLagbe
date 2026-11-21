@@ -25,7 +25,8 @@ const str = (v) => (typeof v === "string" && v.trim() ? v : undefined); // ignor
 const isPrivileged = (u) => !!u && ["admin", "bank_staff"].includes(u.role);
 const isOwnerOf = (r, u) => !!u && String(r.requester) === String(u._id);
 
-// Single place that decides what each viewer may see
+// Single place that decides what each viewer may see.
+// rawText and the ai block are deliberately never included.
 const toRequestDto = (r, viewer) => {
   const owner = isOwnerOf(r, viewer);
   return {
@@ -83,6 +84,9 @@ export const createRequest = asyncHandler(async (req, res) => {
     neededBy: new Date(b.neededBy),
     notes: b.notes || undefined,
     urgency: urgencyFromNeededBy(b.neededBy),
+    // 6B: the original free-text message (kept for auditing) and whether the form was AI-assisted
+    rawText: typeof b.rawText === "string" ? b.rawText.slice(0, 1000) : undefined,
+    ai: { parsedFromText: b.parsedFromText === true || b.parsedFromText === "true" },
   });
   if (coords) doc.location = coords;
   await doc.save();

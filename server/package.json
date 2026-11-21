@@ -9,7 +9,11 @@
     "check:models": "node src/scripts/checkModels.js",
     "sync:indexes": "node src/scripts/syncIndexes.js",
     "test:must": "node src/scripts/mustRunTests.js",
-    "test:requests": "node src/scripts/requestTests.js"
+    "test:requests": "node src/scripts/requestTests.js",
+    "test:match": "node src/scripts/matchingUnitTests.js",
+"test:match:live": "node src/scripts/matchingTests.js",
+"test:parser": "node src/scripts/parserUnitTests.js",
+"test:parser:live": "node src/scripts/parserLiveTests.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

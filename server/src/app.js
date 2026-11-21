@@ -4,10 +4,11 @@ import helmet from "helmet";
 import morgan from "morgan";
 import healthRoutes from "./routes/healthRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
-import { notFound, errorHandler } from "./middleware/errorHandler.js";
 import donorRoutes from "./routes/donorRoutes.js";
 import bankRoutes from "./routes/bankRoutes.js";
 import requestRoutes from "./routes/requestRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
+import { notFound, errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
 
@@ -25,6 +26,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/donors", donorRoutes);
 app.use("/api/banks", bankRoutes);
 app.use("/api/requests", requestRoutes);
+app.use("/api/notifications", notificationRoutes);
+
 app.use(notFound);
 app.use(errorHandler);
 
