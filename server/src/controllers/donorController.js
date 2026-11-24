@@ -11,6 +11,7 @@ const exactCI = (s) => new RegExp(`^${escapeRegex(s.trim())}$`, "i");
 const toDonorDto = (d, viewer) => {
   const isOwner = !!viewer && !!d.user?._id && d.user._id.equals(viewer._id);
   const showPhone = !!viewer && (d.allowPhoneVisible || isOwner);
+  const eligible = isEligibleNow(d.lastDonationDate);
   return {
     id: d._id,
     name: d.user?.name,
@@ -23,20 +24,25 @@ const toDonorDto = (d, viewer) => {
     area: d.area,
     campus: d.campus,
     group: d.group,
-    isAvailable: d.isAvailable,
+    // A donor only counts as available while they are also eligible to donate
+    isAvailable: d.isAvailable && eligible,
+    availabilityOn: isOwner ? d.isAvailable : undefined, // the donor's own switch
     isVerified: d.isVerified,
     totalDonations: d.totalDonations,
     lastDonationDate: d.lastDonationDate,
-    isEligible: isEligibleNow(d.lastDonationDate),
+    isEligible: eligible,
     nextEligibleDate: nextEligibleDate(d.lastDonationDate),
     allowPhoneVisible: isOwner ? d.allowPhoneVisible : undefined,
+    showOnLeaderboard: isOwner ? d.showOnLeaderboard !== false : undefined,
     phone: showPhone ? d.user?.phone : undefined,
+    dateOfBirth: isOwner ? d.dateOfBirth : undefined,
+    weightKg: isOwner ? d.weightKg : undefined,
   };
 };
 
 const USER_FIELDS = "name phone avatar";
 const SETTABLE = [
-  "gender", "weightKg", "dateOfBirth", "lastDonationDate", "allowPhoneVisible",
+  "gender", "weightKg", "dateOfBirth", "lastDonationDate", "allowPhoneVisible", "showOnLeaderboard",
   "division", "district", "upazila", "area", "campus", "group",
 ];
 
@@ -94,7 +100,8 @@ export const searchDonors = asyncHandler(async (req, res) => {
   if (campus) filter.campus = exactCI(campus);
   if (group) filter.group = exactCI(group);
   if (available === "true") filter.isAvailable = true;
-  if (eligibleOnly === "true") {
+  // "Available" implies eligible, so the available filter also applies the donation gap
+  if (eligibleOnly === "true" || available === "true") {
     filter.$or = [{ lastDonationDate: null }, { lastDonationDate: { $lte: eligibleCutoff() } }];
   }
 

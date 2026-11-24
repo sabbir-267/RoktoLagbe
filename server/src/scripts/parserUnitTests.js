@@ -6,7 +6,7 @@
 // Run:  npm run test:parser
 
 import assert from "node:assert/strict";
-// import { sanitizeParsed, REQUIRED_FIELDS } from "../services/sanitizeParsed.js";
+import { sanitizeParsed, REQUIRED_FIELDS } from "../services/sanitizeParsed.js";
 import { DISTRICTS, canonicalDistrict } from "../utils/districts.js";
 
 const NOW = Date.parse("2026-11-17T08:00:00Z");

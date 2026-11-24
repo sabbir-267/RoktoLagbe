@@ -1,3 +1,4 @@
+import DonorProfile from "../models/DonorProfile.js";
 import BloodRequest from "../models/BloodRequest.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -137,7 +138,18 @@ export const getRequest = asyncHandler(async (req, res) => {
   const r = await BloodRequest.findById(req.params.id);
   const visible = r && (ACTIVE.includes(r.status) || isOwnerOf(r, req.user) || isPrivileged(req.user));
   if (!visible) throw new ApiError(404, "Request not found");
-  res.json({ success: true, request: toRequestDto(r, req.user) });
+
+  const dto = toRequestDto(r, req.user);
+
+  // Tell a notified donor their own answer ("pending" | "accepted" | "declined").
+  // It is absent for everyone else, so the page knows not to show the reply buttons.
+  if (req.user && !isOwnerOf(r, req.user)) {
+    const donor = await DonorProfile.findOne({ user: req.user._id }).select("_id");
+    const entry = donor && r.matchedDonors.find((m) => String(m.donor) === String(donor._id));
+    if (entry) dto.myResponse = entry.response;
+  }
+
+  res.json({ success: true, request: dto });
 });
 
 export const updateRequest = asyncHandler(async (req, res) => {

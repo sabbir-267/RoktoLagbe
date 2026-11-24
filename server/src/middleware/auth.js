@@ -3,9 +3,13 @@ import User from "../models/User.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
-export const protect = asyncHandler(async (req, res, next) => {
-  const header = req.headers.authorization || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+// A token signed before the last password reset must stop working
+// (iat is in seconds, passwordChangedAt in milliseconds)
+const issuedBeforePasswordChange = (decoded, user) =>
+  !!user.passwordChangedAt && decoded.iat < Math.floor(user.passwordChangedAt.getTime() / 1000);
+
+// Shared by HTTP requests and the chat socket: returns the user for a token, or throws a 401
+export const userFromToken = async (token) => {
   if (!token) throw new ApiError(401, "Not authenticated");
 
   let decoded;
@@ -17,8 +21,16 @@ export const protect = asyncHandler(async (req, res, next) => {
 
   const user = await User.findById(decoded.id);
   if (!user || !user.isActive) throw new ApiError(401, "User no longer exists or is deactivated");
+  if (issuedBeforePasswordChange(decoded, user)) {
+    throw new ApiError(401, "Your password was changed. Please log in again.");
+  }
+  return user;
+};
 
-  req.user = user;
+export const protect = asyncHandler(async (req, res, next) => {
+  const header = req.headers.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  req.user = await userFromToken(token);
   next();
 });
 
@@ -39,7 +51,7 @@ export const optionalAuth = asyncHandler(async (req, res, next) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const user = await User.findById(decoded.id);
-      if (user?.isActive) req.user = user;
+      if (user?.isActive && !issuedBeforePasswordChange(decoded, user)) req.user = user;
     } catch {
       /* bad token → treat as guest */
     }
@@ -50,6 +62,17 @@ export const optionalAuth = asyncHandler(async (req, res, next) => {
 export const requirePhone = (req, res, next) => {
   if (!req.user.phone) {
     return next(new ApiError(403, "Please add your phone number first"));
+  }
+  next();
+};
+
+// Donors must prove they own their email before they can be listed
+export const requireVerifiedEmail = (req, res, next) => {
+  if (!req.user.email) {
+    return next(new ApiError(403, "Add and verify your email address to become a donor"));
+  }
+  if (!req.user.isEmailVerified) {
+    return next(new ApiError(403, "Please verify your email address first. Check your inbox for the link."));
   }
   next();
 };

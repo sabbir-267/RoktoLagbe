@@ -1,12 +1,13 @@
 import { Router } from "express";
 import { body, param, query } from "express-validator";
 import {
-  createBank, listBanks, getBank, updateBank, listStaff, assignStaff, removeStaff,
+  createBank, listBanks, getBank, updateBank, listStaff, assignStaff, removeStaff, applyForBank, getMyBank,
 } from "../controllers/bankController.js";
 import {
   getStock, addBatch, listBatches, issueUnits, setBatchStatus,
 } from "../controllers/inventoryController.js";
-import { protect, optionalAuth, authorize } from "../middleware/auth.js";
+import { recordDonation, listBankDonations, lookupDonor } from "../controllers/donationController.js";
+import { protect, optionalAuth, authorize, requirePhone } from "../middleware/auth.js";
 import { requireBankAccess } from "../middleware/bankAccess.js";
 import { validate } from "../middleware/validate.js";
 import { BLOOD_GROUPS, normalizeBloodGroup } from "../utils/bloodGroup.js";
@@ -80,8 +81,43 @@ const staffRules = [
     .withMessage("Enter a valid Bangladeshi mobile number"),
 ];
 
+const DONATION_BACKDATE_DAYS = 30;
+
+const donationRules = [
+  ...staffRules,
+  body("donatedAt")
+    .optional({ values: "falsy" })
+    .isISO8601().withMessage("Invalid donation date").bail()
+    .custom((v) => new Date(v) <= new Date()).withMessage("Donation date cannot be in the future").bail()
+    .custom((v) => {
+      // Whole days, so a date-only value from 30 days ago still passes
+      const cutoff = new Date(Date.now() - DONATION_BACKDATE_DAYS * 24 * 60 * 60 * 1000);
+      cutoff.setUTCHours(0, 0, 0, 0);
+      return new Date(v) >= cutoff;
+    })
+    .withMessage(`Donation date cannot be more than ${DONATION_BACKDATE_DAYS} days ago`),
+  body("units").optional().isInt({ min: 1, max: 2 }).withMessage("Units must be 1 or 2").toInt(),
+  body("addToStock").optional().isBoolean().withMessage("addToStock must be true or false").toBoolean(),
+  body("component").optional().isIn(COMPONENTS).withMessage(`Component must be one of: ${COMPONENTS.join(", ")}`),
+];
+
+const lookupRules = [
+  query("phone")
+    .isString().withMessage("Phone number is required").bail()
+    .custom((v) => /^01[3-9]\d{8}$/.test(normalizePhone(v)))
+    .withMessage("Enter a valid Bangladeshi mobile number"),
+];
+
+const pageRules = [
+  query("page").optional().isInt({ min: 1 }),
+  query("limit").optional().isInt({ min: 1, max: 100 }),
+];
+
 // Banks
 router.get("/", optionalAuth, listRules, validate, listBanks);
+// Static paths must come before "/:id"
+router.post("/apply", protect, requirePhone, bankFields(true), validate, applyForBank);
+router.get("/mine", protect, getMyBank);
 router.post("/", protect, authorize("admin"), bankFields(true), validate, createBank);
 router.get("/:id", optionalAuth, ...checkId, getBank);
 router.patch("/:id", protect, ...checkId, requireBankAccess, bankFields(false), validate, updateBank);
@@ -109,5 +145,10 @@ router.patch(
   validate,
   setBatchStatus
 );
+
+// Donations
+router.get("/:id/donors/lookup", protect, ...checkId, requireBankAccess, lookupRules, validate, lookupDonor);
+router.get("/:id/donations", protect, ...checkId, requireBankAccess, pageRules, validate, listBankDonations);
+router.post("/:id/donations", protect, ...checkId, requireBankAccess, donationRules, validate, recordDonation);
 
 export default router;

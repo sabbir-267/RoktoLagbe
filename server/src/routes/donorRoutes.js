@@ -5,7 +5,9 @@ import {
   upsertMyProfile, getMyProfile, setAvailability,
   searchDonors, getDonor, verifyDonor,
 } from "../controllers/donorController.js";
-import { protect, optionalAuth, requirePhone, authorize } from "../middleware/auth.js";
+import { listMyDonations } from "../controllers/donationController.js";
+import { getLeaderboard } from "../controllers/leaderboardController.js";
+import { protect, optionalAuth, requirePhone, requireVerifiedEmail, authorize } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
 import { BLOOD_GROUPS, normalizeBloodGroup } from "../utils/bloodGroup.js";
 import { ageFromDob } from "../utils/eligibility.js";
@@ -41,6 +43,7 @@ const profileRules = [
   body("latitude").optional().isFloat({ min: -90, max: 90 }).withMessage("Invalid latitude"),
   body("longitude").optional().isFloat({ min: -180, max: 180 }).withMessage("Invalid longitude"),
   body("allowPhoneVisible").optional().isBoolean().withMessage("allowPhoneVisible must be true or false"),
+  body("showOnLeaderboard").optional().isBoolean().withMessage("showOnLeaderboard must be true or false"),
   body("lastDonationDate")
     .optional({ values: "falsy" })
     .isISO8601().withMessage("Invalid date").bail()
@@ -67,7 +70,21 @@ const idRule = param("id").isMongoId().withMessage("Invalid donor id");
 router.get("/", searchLimiter, optionalAuth, searchRules, validate, searchDonors);
 
 router.get("/me", protect, getMyProfile);
-router.put("/me", protect, requirePhone, profileRules, validate, upsertMyProfile);
+router.get(
+  "/leaderboard",
+  searchLimiter,
+  optionalAuth,
+  [
+    query("period").optional().isIn(["month", "year", "all"]),
+    query("district").optional().isString().bail().isLength({ max: 80 }),
+    query("bloodGroup").optional().isString().bail().custom((v) => BLOOD_GROUPS.includes(normalizeBloodGroup(v))).withMessage("Invalid blood group"),
+    query("limit").optional().isInt({ min: 3, max: 100 }),
+  ],
+  validate,
+  getLeaderboard
+);
+router.get("/me/donations", protect, listMyDonations);
+router.put("/me", protect, requirePhone, requireVerifiedEmail, profileRules, validate, upsertMyProfile);
 router.patch(
   "/me/availability",
   protect,

@@ -8,6 +8,14 @@ import {
   linkGoogle,
   setPhone,
   getMe,
+  updateProfile,
+  changePassword,
+  forgotPassword,
+  resetPassword,
+  sendVerification,
+  verifyEmail,
+  forgotPasswordEmail,
+  resetPasswordEmail,
 } from "../controllers/authController.js";
 import { protect } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
@@ -24,9 +32,43 @@ const authLimiter = rateLimit({
   message: { success: false, message: "Too many attempts, please try again later" },
 });
 
+// Stricter than authLimiter: each request can send a text message
+const resetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many attempts, please try again later" },
+});
+
+// Verification emails get their own counter, so changing an email a few times
+// never blocks the same person from resetting their password
+const emailLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 6,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many emails requested, please try again later" },
+});
+
 const phoneRule = body("phone")
   .custom((v) => /^01[3-9]\d{8}$/.test(normalizePhone(v)))
   .withMessage("Enter a valid Bangladeshi mobile number");
+
+// Login accepts { identifier } (phone or email). { phone } / { email } still work for older clients.
+const loginIdOf = (b) => b.identifier ?? b.phone ?? b.email;
+const isEmailLike = (v) => v.includes("@");
+const identifierRule = body("identifier").custom((_, { req }) => {
+  const v = loginIdOf(req.body);
+  if (typeof v !== "string" || !v.trim()) throw new Error("Enter your phone number or email");
+  const trimmed = v.trim();
+  if (isEmailLike(trimmed)) {
+    if (trimmed.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) throw new Error("Enter a valid email address");
+  } else if (!/^01[3-9]\d{8}$/.test(normalizePhone(trimmed))) {
+    throw new Error("Enter a valid Bangladeshi mobile number or email");
+  }
+  return true;
+});
 
 const credentialRule = body("credential")
   .isString()
@@ -49,9 +91,23 @@ router.post(
 router.post(
   "/login",
   authLimiter,
-  [phoneRule, body("password").notEmpty().withMessage("Password is required")],
+  [identifierRule, body("password").notEmpty().withMessage("Password is required")],
   validate,
   login
+);
+
+router.post("/forgot-password", resetLimiter, [phoneRule], validate, forgotPassword);
+
+router.post(
+  "/reset-password",
+  resetLimiter,
+  [
+    phoneRule,
+    body("otp").matches(/^\d{6}$/).withMessage("Enter the 6-digit code"),
+    body("password").isLength({ min: 8 }).withMessage("Password must be at least 8 characters"),
+  ],
+  validate,
+  resetPassword
 );
 
 router.post("/google", authLimiter, [credentialRule], validate, googleLogin);
@@ -60,6 +116,71 @@ router.patch("/phone", protect, [phoneRule], validate, setPhone);
 
 router.get("/me", protect, getMe);
 
+// ---------- Account settings ----------
+router.patch(
+  "/me",
+  protect,
+  [body("name").isString().withMessage("Name is required").bail().trim().isLength({ min: 2, max: 80 }).withMessage("Name must be 2-80 characters")],
+  validate,
+  updateProfile
+);
 
+router.post(
+  "/change-password",
+  authLimiter,
+  protect,
+  [
+    body("currentPassword").optional({ values: "falsy" }).isString().withMessage("Invalid current password").bail().isLength({ max: 200 }),
+    body("newPassword")
+      .isString()
+      .withMessage("New password is required")
+      .bail()
+      .isLength({ min: 8 })
+      .withMessage("Password must be at least 8 characters")
+      .bail()
+      .isLength({ max: 200 })
+      .withMessage("Password must be at most 200 characters"),
+  ],
+  validate,
+  changePassword
+);
+
+// ---------- Email verification ----------
+router.post(
+  "/email/send-verification",
+  emailLimiter,
+  protect,
+  [body("email").optional({ values: "falsy" }).isEmail().withMessage("Enter a valid email address").bail().isLength({ max: 254 })],
+  validate,
+  sendVerification
+);
+
+router.post(
+  "/email/verify",
+  authLimiter,
+  [body("token").isString().withMessage("Verification token is required")],
+  validate,
+  verifyEmail
+);
+
+// ---------- Password reset by email ----------
+router.post(
+  "/forgot-password/email",
+  resetLimiter,
+  [body("email").isEmail().withMessage("Enter a valid email address").bail().isLength({ max: 254 })],
+  validate,
+  forgotPasswordEmail
+);
+
+router.post(
+  "/reset-password/email",
+  resetLimiter,
+  [
+    body("token").isString().withMessage("Reset token is required"),
+    body("password").isLength({ min: 8 }).withMessage("Password must be at least 8 characters"),
+  ],
+  validate,
+  resetPasswordEmail
+);
 
 export default router;

@@ -88,9 +88,13 @@ export const listBanks = asyncHandler(async (req, res) => {
   });
 });
 
+// Admins and the bank's own staff can see a bank that is still waiting for approval
+const canSeeUnapproved = (user, bankId) =>
+  user?.role === "admin" || (user?.role === "bank_staff" && !!user.bloodBank && user.bloodBank.equals(bankId));
+
 export const getBank = asyncHandler(async (req, res) => {
   const bank = await BloodBank.findById(req.params.id);
-  if (!bank || (!bank.isApproved && req.user?.role !== "admin")) {
+  if (!bank || (!bank.isApproved && !canSeeUnapproved(req.user, bank._id))) {
     throw new ApiError(404, "Blood bank not found");
   }
   res.json({ success: true, bank: toBankDto(bank), stock: await stockSummary(bank._id) });
@@ -111,8 +115,70 @@ export const updateBank = asyncHandler(async (req, res) => {
 });
 
 export const listStaff = asyncHandler(async (req, res) => {
-  const staff = await User.find({ bloodBank: req.params.id, role: "bank_staff" }).select("name phone");
-  res.json({ success: true, staff: staff.map((u) => ({ id: u._id, name: u.name, phone: u.phone })) });
+  const staff = await User.find({ bloodBank: req.params.id, role: "bank_staff" }).select("name phone email");
+  res.json({
+    success: true,
+    staff: staff.map((u) => ({ id: u._id, name: u.name, phone: u.phone, email: u.email })),
+  });
+});
+
+// POST /api/banks/apply   A regular member registers their blood bank.
+// The bank stays hidden until an admin approves it; the applicant becomes its first staff member.
+export const applyForBank = asyncHandler(async (req, res) => {
+  const user = req.user;
+  if (user.role !== "user" || user.bloodBank) {
+    throw new ApiError(409, "Your account is already linked to a blood bank or is an admin account");
+  }
+
+  const coords = readCoords(req.body);
+  const bank = new BloodBank({ ...pickFields(req.body, FIELDS), isApproved: false });
+  if (coords) bank.location = coords;
+  await bank.save();
+
+  user.role = "bank_staff";
+  user.bloodBank = bank._id;
+  try {
+    await user.save();
+  } catch (err) {
+    await BloodBank.deleteOne({ _id: bank._id }); // don't leave an orphan bank behind
+    throw err;
+  }
+
+  res.status(201).json({ success: true, bank: toBankDto(bank) });
+});
+
+// GET /api/banks/mine   The bank the logged-in staff member works at, with portal numbers
+export const getMyBank = asyncHandler(async (req, res) => {
+  if (req.user.role !== "bank_staff" || !req.user.bloodBank) {
+    throw new ApiError(404, "Your account is not linked to a blood bank");
+  }
+  const bank = await BloodBank.findById(req.user.bloodBank);
+  if (!bank) throw new ApiError(404, "Your blood bank no longer exists");
+
+  const now = new Date();
+  const soon = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const [stock, byStatus, expiringSoon] = await Promise.all([
+    stockSummary(bank._id),
+    InventoryBatch.aggregate([
+      { $match: { bloodBank: bank._id } },
+      { $group: { _id: "$status", batches: { $sum: 1 }, units: { $sum: "$units" } } },
+    ]),
+    InventoryBatch.countDocuments({
+      bloodBank: bank._id,
+      status: { $in: ["available", "reserved"] },
+      expiresAt: { $gt: now, $lte: soon },
+    }),
+  ]);
+
+  res.json({
+    success: true,
+    bank: toBankDto(bank),
+    stock,
+    inventory: {
+      byStatus: Object.fromEntries(byStatus.map((r) => [r._id, { batches: r.batches, units: r.units }])),
+      expiringSoon,
+    },
+  });
 });
 
 export const assignStaff = asyncHandler(async (req, res) => {

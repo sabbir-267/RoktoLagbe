@@ -31,6 +31,7 @@ const donorProfileSchema = new mongoose.Schema(
     totalDonations: { type: Number, default: 0 },
     medicalNotes: { type: String, select: false }, // private
     allowPhoneVisible: { type: Boolean, default: false },
+    showOnLeaderboard: { type: Boolean, default: true }, // donors can opt out of the public leaderboard
 
     // Verification
     isVerified: { type: Boolean, default: false },

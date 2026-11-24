@@ -10,7 +10,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { DISTRICTS } from "../utils/districts.js";
 import { BLOOD_GROUPS } from "../utils/bloodGroup.js";
 import { COMPONENTS } from "../utils/shelfLife.js";
-// import { sanitizeParsed } from "./sanitizeParsed.js";
+import { sanitizeParsed } from "./sanitizeParsed.js";
 
 const model = () => process.env.AI_MODEL || "claude-haiku-5-5";
 

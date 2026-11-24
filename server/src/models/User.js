@@ -13,6 +13,7 @@ const userSchema = new mongoose.Schema(
     googleId: { type: String, sparse: true, unique: true },
     avatar: String,
     isEmailVerified: { type: Boolean, default: false },
+    passwordChangedAt: Date, // tokens issued before this are rejected (set on password reset)
     role: { type: String, enum: ["user", "bank_staff", "admin"], default: "user" },
     bloodBank: { type: mongoose.Schema.Types.ObjectId, ref: "BloodBank" }, // for bank_staff
     isPhoneVerified: { type: Boolean, default: false },
