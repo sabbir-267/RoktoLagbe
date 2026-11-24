@@ -26,8 +26,9 @@ services:
       # The website's address. If Render gave the static site a different name, change it here.
       - key: CLIENT_URL
         value: https://rokto-lagbe.onrender.com
-      - key: GOOGLE_CLIENT_ID # same value as the client's VITE_GOOGLE_CLIENT_ID (optional)
-        sync: false
+      # Google OAuth client ID (public, not a secret). Must match the website's VITE_GOOGLE_CLIENT_ID.
+      - key: GOOGLE_CLIENT_ID
+        value: 769359302180-efuhdi9cdarl7f5veqbb8cjph1hvgde6.apps.googleusercontent.com
       # Email (optional). Without it, email verification and email password reset are off.
       - key: SMTP_HOST
         sync: false
@@ -59,8 +60,8 @@ services:
       # The API's address. If Render gave the API a different name, change it and redeploy.
       - key: VITE_API_URL
         value: https://rokto-lagbe-api.onrender.com
-      - key: VITE_GOOGLE_CLIENT_ID
-        sync: false
+      - key: VITE_GOOGLE_CLIENT_ID # must match the API's GOOGLE_CLIENT_ID
+        value: 769359302180-efuhdi9cdarl7f5veqbb8cjph1hvgde6.apps.googleusercontent.com
       - key: VITE_SESSION_TIMEOUT_MINUTES
         value: "30"
     headers:
