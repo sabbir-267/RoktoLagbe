@@ -47,7 +47,12 @@ export const validateEnv = (env = process.env) => {
 
   const smtpVars = ["SMTP_HOST", "SMTP_USER", "SMTP_PASS"];
   const smtpSet = smtpVars.filter((k) => env[k]);
-  if (smtpSet.length && smtpSet.length < smtpVars.length) {
+  const relaySet = ["EMAIL_RELAY_URL", "EMAIL_RELAY_SECRET"].filter((k) => env[k]);
+  if (relaySet.length === 1) {
+    warnings.push("Email relay is half-configured: set both EMAIL_RELAY_URL and EMAIL_RELAY_SECRET");
+  } else if (relaySet.length === 2) {
+    // The HTTPS relay sends the emails, so the SMTP settings are not needed
+  } else if (smtpSet.length && smtpSet.length < smtpVars.length) {
     warnings.push(`Email is half-configured: set all of ${smtpVars.join(", ")}`);
   } else if (!smtpSet.length) {
     warnings.push(

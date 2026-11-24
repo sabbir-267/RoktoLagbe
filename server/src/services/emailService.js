@@ -19,7 +19,29 @@ const isProd = () => process.env.NODE_ENV === "production";
 const smtpConfigured = () =>
   Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 
-export const emailAvailable = () => smtpConfigured() || !isProd();
+// HTTPS relay (a Google Apps Script in the sending Gmail account, see scripts/gmail-relay.gs).
+// Used instead of SMTP when set: free hosts such as Render block outgoing SMTP ports.
+const relayConfigured = () => Boolean(process.env.EMAIL_RELAY_URL && process.env.EMAIL_RELAY_SECRET);
+
+export const emailAvailable = () => relayConfigured() || smtpConfigured() || !isProd();
+
+const sendViaRelay = async ({ to, subject, text, html }) => {
+  const res = await fetch(process.env.EMAIL_RELAY_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" }, // Apps Script reads the raw body
+    body: JSON.stringify({ secret: process.env.EMAIL_RELAY_SECRET, to, subject, text, html, name: "RoktoLagbe" }),
+    redirect: "follow", // Apps Script answers through a redirect to googleusercontent.com
+    signal: AbortSignal.timeout(25_000),
+  });
+  const raw = await res.text();
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    throw new Error(`Relay returned HTTP ${res.status} and no JSON (is the web app deployed for "Anyone"?)`);
+  }
+  if (!data.ok) throw new Error(`Relay refused: ${data.error || "unknown error"}`);
+};
 
 // Links in emails point at the frontend. CLIENT_URL may list several origins; the first one is used.
 export const clientUrl = () => parseOrigins(process.env.CLIENT_URL)[0] || "http://localhost:5173";
@@ -40,6 +62,16 @@ const getTransporter = () => {
 };
 
 export const sendEmail = async ({ to, subject, text, html }) => {
+  if (relayConfigured()) {
+    try {
+      await sendViaRelay({ to, subject, text, html });
+      return;
+    } catch (err) {
+      console.error("Email send failed (relay):", err.message);
+      throw new ApiError(502, "Could not send the email. Please try again later.");
+    }
+  }
+
   if (!smtpConfigured()) {
     if (isProd()) throw new ApiError(503, "Email is not available right now");
     console.log(`📧 [DEV EMAIL to ${to}] ${subject}\n${text}\n`);

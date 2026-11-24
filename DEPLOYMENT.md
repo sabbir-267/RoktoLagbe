@@ -55,7 +55,14 @@ If either name was taken, Render adds a suffix (e.g. `rokto-lagbe-x1y2.onrender.
 
 **Google sign-in.** Google Cloud Console → APIs & Services → Credentials → your OAuth client → **Authorized JavaScript origins** → add the website address (`https://rokto-lagbe.onrender.com`). Without this, the Google button shows an error on the live site.
 
-**Email** (verification links, password reset by email). Use a free SMTP provider such as Brevo (300 emails/day). Free Render servers may block the usual email ports, so use port **2525** (already set in `render.yaml`; Brevo and most providers support it). Without SMTP, everything else works, but email verification is required to become a donor, so set this up before real users join.
+**Email** (verification links, password reset by email). Free Render blocks outgoing SMTP ports, so Gmail SMTP cannot work there. Instead the site sends through a tiny Google Apps Script in your Gmail account, over HTTPS (about 100 emails/day free):
+
+1. Sign in to the Gmail account that should send the emails, open <https://script.google.com> → **New project**, delete the sample code and paste [`server/scripts/gmail-relay.gs`](server/scripts/gmail-relay.gs).
+2. **Project Settings** (gear) → **Script Properties** → **Add script property**: `RELAY_SECRET` = a long random value (`openssl rand -hex 32`).
+3. **Deploy** → **New deployment** → type **Web app**, *Execute as* **Me**, *Who has access* **Anyone** → **Deploy** → authorize (Advanced → Go to project → Allow). Copy the **Web app URL** (ends in `/exec`).
+4. Render → rokto-lagbe-api → **Environment**: `EMAIL_RELAY_URL` = that URL, `EMAIL_RELAY_SECRET` = the same random value → **Save, rebuild, and deploy**.
+
+Without email, everything else works, but email verification is required to become a donor.
 
 **SMS password reset** is off in production until an SMS provider is connected (`SMS_ENABLED=true`); users can still reset by email.
 
