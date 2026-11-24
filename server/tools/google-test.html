@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+
+<body style="font-family: sans-serif; padding: 24px">
+    <h3>Rokto Lagbe: Google login test</h3>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <div id="g_id_onload" data-client_id="1085976783886-vnd8ghllkgrjkl086np9qumojs9dtakb.apps.googleusercontent.com" data-callback="handleCredential" data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin" data-type="standard"></div>
+    <pre id="out" style="white-space: pre-wrap; word-break: break-all"></pre>
+    <script>
+        async function handleCredential(res) {
+            const r = await fetch("http://localhost:5000/api/auth/google", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ credential: res.credential }),
+            });
+            const data = await r.json();
+            document.getElementById("out").textContent =
+                "HTTP " + r.status + "\n\n" + JSON.stringify(data, null, 2) +
+                "\n\ncredential (for Postman link test):\n" + res.credential;
+        }
+    </script>
+</body>
+
+</html>

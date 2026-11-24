@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  /* Inter has no Bangla letters, so the browser takes those from Hind Siliguri */
+  --font-sans: "Inter", "Hind Siliguri", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Bengali", sans-serif;
+
+  --color-brand-red: #b3202f;
+  --color-brand-red-dark: #8a1523;
+  --color-brand-blue: #124b8a;
+  --color-brand-blue-dark: #0c3563;
+  --color-surface: #f7f8fb;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-surface text-gray-800;
+    font-feature-settings: "cv11", "ss01";
+  }
+  h1, h2, h3, h4 {
+    letter-spacing: -0.015em;
+  }
+  ::selection {
+    @apply bg-red-100 text-brand-red-dark;
+  }
+  /* Visible keyboard focus everywhere, invisible for mouse clicks */
+  :focus-visible {
+    outline: 2px solid var(--color-brand-blue);
+    outline-offset: 2px;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  /* Card used across pages: white, soft border and shadow */
+  .card {
+    @apply rounded-2xl border border-gray-100 bg-white shadow-sm;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand-red px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-red-dark disabled:opacity-60;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
