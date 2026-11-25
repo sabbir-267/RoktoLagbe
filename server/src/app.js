@@ -11,6 +11,8 @@ import statsRoutes from "./routes/statsRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import assistantRoutes from "./routes/assistantRoutes.js";
 import complaintRoutes from "./routes/complaintRoutes.js";
+import doctorRoutes from "./routes/doctorRoutes.js";
+import consultationRoutes from "./routes/consultationRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -28,6 +30,8 @@ app.use("/api/stats", statsRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/assistant", assistantRoutes);
 app.use("/api/complaints", complaintRoutes);
+app.use("/api/doctors", doctorRoutes);
+app.use("/api/consultations", consultationRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

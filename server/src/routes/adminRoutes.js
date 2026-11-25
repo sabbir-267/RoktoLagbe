@@ -2,7 +2,10 @@ import { Router } from "express";
 import { body, param, query } from "express-validator";
 import {
   getStats, listUsers, updateUser, listAllBanks, setBankApproval, listAllDonors,
+  listDoctorApplications, reviewDoctor,
 } from "../controllers/adminController.js";
+import { setVisibility } from "../controllers/consultationController.js";
+import { DOCTOR_STATUSES } from "../models/DoctorProfile.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
 import { BLOOD_GROUPS, normalizeBloodGroup } from "../utils/bloodGroup.js";
@@ -24,7 +27,7 @@ router.get(
   "/users",
   [
     ...pageRules,
-    query("role").optional().isIn(["user", "bank_staff", "admin"]),
+    query("role").optional().isIn(["user", "bank_staff", "admin", "doctor"]),
     query("status").optional().isIn(["active", "inactive"]),
   ],
   validate,
@@ -71,6 +74,35 @@ router.get(
   ],
   validate,
   listAllDonors
+);
+
+router.get(
+  "/doctors",
+  [...pageRules, query("status").optional().isIn(DOCTOR_STATUSES).withMessage("Invalid status")],
+  validate,
+  listDoctorApplications
+);
+
+router.patch(
+  "/doctors/:id",
+  [
+    idRule,
+    body("status").isIn(["approved", "rejected", "suspended"]).withMessage("Status must be approved, rejected or suspended"),
+    body("reviewNote")
+      .optional({ values: "null" })
+      .isString().withMessage("Note must be text").bail()
+      .trim()
+      .isLength({ max: 300 }).withMessage("Note must be at most 300 characters"),
+  ],
+  validate,
+  reviewDoctor
+);
+
+router.patch(
+  "/consultations/:id/visibility",
+  [idRule, body("hiddenFromPublic").isBoolean({ strict: true }).withMessage("hiddenFromPublic must be true or false")],
+  validate,
+  setVisibility
 );
 
 export default router;

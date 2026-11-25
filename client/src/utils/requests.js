@@ -38,6 +38,7 @@ export function normalizeRequest(raw) {
     fulfilledUnits: raw.fulfilledUnits ?? 0,
     hospital: raw.hospital || "",
     district: raw.district || "",
+    coordinates: Array.isArray(raw.coordinates) && raw.coordinates.length === 2 ? raw.coordinates : null, // [lng, lat]
     neededBy: raw.neededBy || "",
     urgency: raw.urgency || "medium",
     status: raw.status || "open",

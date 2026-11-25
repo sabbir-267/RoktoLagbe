@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Bot, RotateCcw, RotateCw, Send, Sparkles, X } from "lucide-react";
+import { ArrowRight, RotateCcw, RotateCw, Send, Sparkles, X } from "lucide-react";
+import AssistantIcon from "./assistant/AssistantIcon";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../i18n/LanguageContext";
 import useT from "../i18n/useT";
@@ -202,7 +203,7 @@ export default function AssistantWidget() {
           {/* Header */}
           <header className="flex items-center gap-3 border-b border-gray-100 px-4 py-3">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-red/10 text-brand-red">
-              <Bot size={20} />
+              <AssistantIcon size={20} variant="outline" />
             </span>
             <div className="min-w-0 flex-1">
               <h2 className="truncate text-sm font-bold text-gray-900">{t("title")}</h2>
@@ -362,12 +363,7 @@ export default function AssistantWidget() {
           open ? "hidden sm:flex" : "flex"
         }`}
       >
-        {open ? <X size={24} /> : <Sparkles size={24} />}
-        {!open && (
-          <span className="absolute -top-1 -right-1 rounded-full bg-brand-blue px-1.5 py-0.5 text-[10px] leading-none font-bold text-white ring-2 ring-white">
-            AI
-          </span>
-        )}
+        {open ? <X size={24} /> : <AssistantIcon size={34} variant="solid" />}
       </button>
     </>
   );

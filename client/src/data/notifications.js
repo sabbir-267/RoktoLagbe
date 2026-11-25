@@ -1,4 +1,4 @@
-import { HeartPulse, ClipboardCheck, Clock, Info } from "lucide-react";
+import { HeartPulse, ClipboardCheck, Clock, Info, Stethoscope } from "lucide-react";
 
 // One look per notification type the backend can send
 export const TYPE_META = {
@@ -19,6 +19,12 @@ export const TYPE_META = {
     label: "Expiry alert",
     bg: "bg-amber-50",
     text: "text-amber-600",
+  },
+  consultation: {
+    icon: Stethoscope,
+    label: "Doctor consultation",
+    bg: "bg-teal-50",
+    text: "text-teal-700",
   },
   system: {
     icon: Info,

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
-  Menu, X, LogOut, LayoutDashboard, ShieldCheck, Building2, HeartPulse, Settings, ChevronDown, MessageCircle, MessageSquareWarning,
+  Menu, X, LogOut, LayoutDashboard, ShieldCheck, Building2, HeartPulse, Settings, ChevronDown, MessageCircle, MessageSquareWarning, Stethoscope,
 } from "lucide-react";
 import useT from "../i18n/useT";
 import layout from "../i18n/layout";
@@ -16,10 +16,10 @@ const LINKS = [
   { to: "/requests", key: "navRequests" },
   { to: "/blood-banks", key: "navBanks" },
   { to: "/leaderboard", key: "navLeaderboard" },
-  { to: "/eligibility", key: "navEligibility" },
+  { to: "/doctors", key: "navDoctors" },
 ];
 
-const ROLE_KEY = { user: "roleUser", bank_staff: "roleStaff", admin: "roleAdmin" };
+const ROLE_KEY = { user: "roleUser", bank_staff: "roleStaff", admin: "roleAdmin", doctor: "roleDoctor" };
 
 function Avatar({ user, size = "h-8 w-8 text-sm" }) {
   if (user.avatar) {
@@ -78,13 +78,16 @@ export default function Navbar() {
       ? { to: "/admin", label: t("adminPortal"), icon: ShieldCheck }
       : user?.role === "bank_staff"
         ? { to: "/bank-portal", label: t("bankPortal"), icon: Building2 }
-        : null;
+        : user?.role === "doctor"
+          ? { to: "/doctor-portal", label: t("doctorPortal"), icon: Stethoscope }
+          : null;
 
   const accountLinks = user
     ? [
         ...(portal ? [portal] : []),
         { to: "/dashboard", label: t("dashboard"), icon: LayoutDashboard },
         { to: "/donor-profile", label: t("donorProfile"), icon: HeartPulse },
+        { to: "/consultations", label: t("myQuestions"), icon: Stethoscope },
         { to: "/settings", label: t("settings"), icon: Settings },
         { to: "/complaints", label: t("complaints"), icon: MessageSquareWarning },
       ]

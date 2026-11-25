@@ -1,0 +1,96 @@
+/* Custom Leaflet markers (L.divIcon) and small map tweaks */
+.rl-marker {
+  background: none;
+  border: none;
+}
+
+.rl-hospital {
+  display: flex;
+  height: 30px;
+  width: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+  border-radius: 8px;
+  background: #b3202f;
+  color: #fff;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
+}
+
+.rl-you {
+  position: relative;
+  height: 22px;
+  width: 22px;
+}
+.rl-you-dot {
+  position: absolute;
+  inset: 4px;
+  border: 2px solid #fff;
+  border-radius: 9999px;
+  background: #1d6fd8;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+}
+.rl-you-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: rgb(29 111 216 / 0.35);
+  animation: rl-pulse 2s ease-out infinite;
+}
+@keyframes rl-pulse {
+  0% { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.rl-pin {
+  position: relative;
+  height: 40px;
+  width: 30px;
+}
+.rl-pin::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 1px;
+  height: 24px;
+  width: 24px;
+  border: 2px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  background: #b3202f;
+  transform: rotate(-45deg);
+  box-shadow: -1px 2px 5px rgb(0 0 0 / 0.35);
+}
+.rl-pin span {
+  position: absolute;
+  left: 11px;
+  top: 9px;
+  height: 8px;
+  width: 8px;
+  border-radius: 9999px;
+  background: #fff;
+}
+
+.rl-donor {
+  display: flex;
+  height: 34px;
+  width: 34px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+  border-radius: 9999px;
+  background: #124b8a;
+  color: #fff;
+  font: 700 12px/1 ui-sans-serif, system-ui, sans-serif;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
+}
+.rl-donor--arrived { background: #15803d; }
+.rl-donor--stopped { background: #6b7280; }
+
+/* Smaller attribution text on small maps (it must stay visible) */
+.rl-map .leaflet-control-attribution {
+  font-size: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rl-you-pulse { animation: none; opacity: 0; }
+}

@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema(
     avatar: String,
     isEmailVerified: { type: Boolean, default: false },
     passwordChangedAt: Date, // tokens issued before this are rejected (set on password reset)
-    role: { type: String, enum: ["user", "bank_staff", "admin"], default: "user" },
+    role: { type: String, enum: ["user", "bank_staff", "admin", "doctor"], default: "user" }, // doctor: approved via DoctorProfile
     bloodBank: { type: mongoose.Schema.Types.ObjectId, ref: "BloodBank" }, // for bank_staff
     isPhoneVerified: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },

@@ -27,6 +27,7 @@ export default {
     type_request_update: "Request update",
     type_expiry_alert: "Expiry alert",
     type_system: "Notice",
+    type_consultation: "Doctor consultation",
     // Relative times
     justNow: "Just now",
     minAgo_one: "{count} min ago",
@@ -62,6 +63,7 @@ export default {
     type_request_update: "অনুরোধের আপডেট",
     type_expiry_alert: "মেয়াদ শেষের সতর্কতা",
     type_system: "নোটিশ",
+    type_consultation: "ডাক্তারের পরামর্শ",
     justNow: "এইমাত্র",
     minAgo_one: "{count} মিনিট আগে",
     minAgo_other: "{count} মিনিট আগে",

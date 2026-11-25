@@ -22,6 +22,9 @@ import { URGENCY, STATUS, normalizeRequest, isActive } from "../utils/requests";
 import { toWhatsAppNumber } from "../utils/phone";
 import { parseError } from "../utils/errors";
 import DonorMatches from "../components/DonorMatches";
+import DonorTripCard from "../components/trip/DonorTripCard";
+import RequesterTripsPanel from "../components/trip/RequesterTripsPanel";
+import { fromLngLat } from "../components/map/geo";
 import Spinner from "../components/Spinner";
 import useT from "../i18n/useT";
 import requests, { timeLeftText, DATE_TIME } from "../i18n/requests";
@@ -112,6 +115,7 @@ export default function RequestDetail() {
   const privileged = user && ["admin", "bank_staff"].includes(user.role);
   const canManage = r.isMine || privileged;
   const remaining = Math.max(r.unitsNeeded - r.fulfilledUnits, 0);
+  const hospitalPoint = fromLngLat(r.coordinates);
 
   async function changeStatus(next, fulfilledUnits) {
     setBusy(true);
@@ -281,6 +285,8 @@ export default function RequestDetail() {
                 </p>
               )}
 
+              {r.isMine && active && <RequesterTripsPanel requestId={r.id} hospital={hospitalPoint} />}
+
               <DonorMatches requestId={r.id} active={active} onChanged={reload} />
             </>
           )}
@@ -326,6 +332,11 @@ export default function RequestDetail() {
                 </>
               )}
             </section>
+          )}
+
+          {/* Live trip sharing for a donor who said yes */}
+          {user && !r.isMine && active && r.myResponse === "accepted" && (
+            <DonorTripCard requestId={r.id} hospital={hospitalPoint} />
           )}
         </div>
 

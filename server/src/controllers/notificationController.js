@@ -9,6 +9,7 @@ const toDto = (n) => ({
   title: n.title,
   message: n.message,
   requestId: n.relatedRequest,
+  link: n.link || null,
   isRead: n.isRead,
   createdAt: n.createdAt,
 });

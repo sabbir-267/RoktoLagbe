@@ -197,4 +197,7 @@ export default [
   { text: "who is the best football player", intent: null },
   { text: "ফেসবুক পাসওয়ার্ড হ্যাক করব কীভাবে", intent: null },
   { text: "convert 5 miles to km", intent: null },
+  { text: "where can I get a doctor's opinion online", intent: "ask_doctor" },
+  { text: "ডাক্তার এর কাছে প্রশ্ন পাঠাতে চাই", intent: "ask_doctor" },
+  { text: "ami doctor, ei site e kivabe join korbo", intent: "ask_doctor" },
 ];

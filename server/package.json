@@ -10,6 +10,8 @@
     "sync:indexes": "node src/scripts/syncIndexes.js",
     "test:must": "node src/scripts/mustRunTests.js",
     "test:requests": "node src/scripts/requestTests.js",
+    "test:consult": "node src/scripts/consultationTests.js",
+    "test:trip": "node src/scripts/tripTests.js",
     "test:match": "node src/scripts/matchingUnitTests.js",
     "test:match:live": "node src/scripts/matchingTests.js",
     "test:parser": "node src/scripts/parserUnitTests.js",

@@ -6,6 +6,7 @@ import {
 } from "../controllers/requestController.js";
 import { parseRequestText } from "../controllers/parseController.js";
 import { getMatches, notifyMatches, respondToRequest, getResponses } from "../controllers/matchController.js";
+import { tripAction, updateTripLocation, getTrips } from "../controllers/tripController.js";
 import { protect, optionalAuth, requirePhone } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
 import { BLOOD_GROUPS, normalizeBloodGroup } from "../utils/bloodGroup.js";
@@ -45,6 +46,16 @@ const notifyLimiter = rateLimit({
   message: { success: false, message: "Too many notification attempts. Please try again later." },
 });
 
+// Live trip location updates: per user. Set TRIP_LOCATION_LIMIT=1000 in .env for development/tests.
+const tripLocationLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: Number(process.env.TRIP_LOCATION_LIMIT) || 40,
+  keyGenerator: (req) => String(req.user._id), // must run after protect
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many location updates. Please slow down." },
+});
+
 const fields = (isCreate) => {
   const opt = (chain) => (isCreate ? chain : chain.optional());
   return [
@@ -52,12 +63,13 @@ const fields = (isCreate) => {
       ? [
           body("bloodGroup").custom(isBloodGroup).withMessage("Invalid blood group"),
           body("component").optional().isIn(COMPONENTS).withMessage(`Component must be one of: ${COMPONENTS.join(", ")}`),
-          body("latitude").optional().isFloat({ min: -90, max: 90 }).withMessage("Invalid latitude"),
-          body("longitude").optional().isFloat({ min: -180, max: 180 }).withMessage("Invalid longitude"),
           body("rawText").optional({ values: "falsy" }).isString().isLength({ max: 1000 }).withMessage("rawText is too long"),
           body("parsedFromText").optional().isBoolean().withMessage("parsedFromText must be true or false"),
         ]
       : []),
+    // Hospital pin: on create, or set/fixed later by PATCH
+    body("latitude").optional().not().isArray().bail().isFloat({ min: -90, max: 90 }).withMessage("Invalid latitude"),
+    body("longitude").optional().not().isArray().bail().isFloat({ min: -180, max: 180 }).withMessage("Invalid longitude"),
     opt(body("patientName"))
       .isString().withMessage("Patient name is required").bail()
       .trim().isLength({ min: 2, max: 80 }).withMessage("Patient name must be 2-80 characters"),
@@ -115,6 +127,22 @@ const notifyRules = [
   body("includeOtherDistricts").optional().isBoolean().withMessage("includeOtherDistricts must be true or false"),
 ];
 
+const tripActionRules = [
+  body("action").isIn(["start", "arrived", "stop"]).withMessage("action must be start, arrived or stop"),
+];
+
+const tripLocationRules = [
+  body("latitude").exists({ values: "null" }).withMessage("latitude is required").bail()
+    .not().isArray().withMessage("Invalid latitude").bail()
+    .isFloat({ min: -90, max: 90 }).withMessage("Invalid latitude"),
+  body("longitude").exists({ values: "null" }).withMessage("longitude is required").bail()
+    .not().isArray().withMessage("Invalid longitude").bail()
+    .isFloat({ min: -180, max: 180 }).withMessage("Invalid longitude"),
+  body("accuracy").optional({ values: "null" })
+    .not().isArray().withMessage("accuracy must be 0-5000 metres").bail()
+    .isFloat({ min: 0, max: 5000 }).withMessage("accuracy must be 0-5000 metres"),
+];
+
 const respondRules = [body("response").isIn(["accepted", "declined"]).withMessage("response must be accepted or declined")];
 
 // Fixed paths (/mine, /parse) must stay above the /:id routes
@@ -137,6 +165,11 @@ router.get("/:id/matches", protect, idRule, matchRules, validate, getMatches);
 router.post("/:id/notify", protect, notifyLimiter, idRule, notifyRules, validate, notifyMatches);
 router.get("/:id/responses", protect, idRule, validate, getResponses);
 router.post("/:id/respond", protect, idRule, respondRules, validate, respondToRequest);
+
+// Live trip tracking (docs/maps-and-live-tracking.md §2)
+router.post("/:id/trip", protect, idRule, tripActionRules, validate, tripAction);
+router.put("/:id/trip/location", protect, tripLocationLimiter, idRule, tripLocationRules, validate, updateTripLocation);
+router.get("/:id/trips", protect, idRule, validate, getTrips);
 
 router.get("/:id", optionalAuth, idRule, validate, getRequest);
 router.patch("/:id", protect, idRule, fields(false), validate, updateRequest);

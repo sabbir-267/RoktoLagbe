@@ -7,6 +7,7 @@ import { normalizePhone } from "../utils/phone.js";
 import { normalizeBloodGroup } from "../utils/bloodGroup.js";
 import { urgencyFromNeededBy } from "../utils/urgency.js";
 import { REQUEST_GRACE_MS } from "../services/requestService.js";
+import { endTripsForRequest } from "./tripController.js";
 
 const MAX_ACTIVE_PER_USER = 3;
 const ACTIVE = ["open", "in_progress"];
@@ -172,9 +173,15 @@ export const updateRequest = asyncHandler(async (req, res) => {
   if (!isOwnerOf(r, req.user) && req.user.role !== "admin") {
     throw new ApiError(403, "You can only change your own requests");
   }
-  if (r.status !== "open") throw new ApiError(409, "Only open requests can be edited");
-
   const b = req.body; // bloodGroup is deliberately not editable
+  // The hospital pin may still be set or fixed while donors are responding (in_progress),
+  // because the live trip map needs it; every other field is editable only while open.
+  const onlyLocation = Object.keys(b).every((k) => k === "latitude" || k === "longitude");
+  const editable = r.status === "open" || (onlyLocation && r.status === "in_progress");
+  if (!editable) {
+    throw new ApiError(409, onlyLocation ? "This request is closed" : "Only open requests can be edited");
+  }
+
   for (const k of ["patientName", "hospital", "district", "notes"]) {
     if (b[k] !== undefined) r[k] = b[k];
   }
@@ -188,6 +195,9 @@ export const updateRequest = asyncHandler(async (req, res) => {
     r.neededBy = new Date(b.neededBy);
     r.urgency = urgencyFromNeededBy(r.neededBy);
   }
+  // Hospital pin can be set or fixed later
+  const coords = readCoords(b);
+  if (coords) r.location = coords;
 
   await r.save();
   res.json({ success: true, request: toRequestDto(r, req.user) });
@@ -224,6 +234,8 @@ export const setStatus = asyncHandler(async (req, res) => {
     { new: true }
   );
   if (!updated) throw new ApiError(409, "This request was just changed by someone else. Refresh and try again.");
+  // A closed request ends any live trips and clears their coordinates
+  if (!ACTIVE.includes(status)) await endTripsForRequest(updated._id);
 
   res.json({ success: true, request: toRequestDto(updated, req.user) });
 });

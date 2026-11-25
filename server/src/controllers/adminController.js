@@ -4,6 +4,10 @@ import DonorProfile from "../models/DonorProfile.js";
 import BloodRequest from "../models/BloodRequest.js";
 import InventoryBatch from "../models/InventoryBatch.js";
 import Complaint from "../models/Complaint.js";
+import DoctorProfile from "../models/DoctorProfile.js";
+import Consultation from "../models/Consultation.js";
+import { toDoctorOwn } from "./doctorController.js";
+import { notifyConsultation } from "../services/consultationNotify.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { normalizeBloodGroup } from "../utils/bloodGroup.js";
@@ -59,6 +63,12 @@ export const getStats = asyncHandler(async (req, res) => {
     Complaint.countDocuments({ status: "open" }),
     Complaint.countDocuments({ status: "in_review" }),
   ]);
+  const [approvedDoctors, pendingDoctors, openConsultations, answeredConsultations] = await Promise.all([
+    DoctorProfile.countDocuments({ status: "approved" }),
+    DoctorProfile.countDocuments({ status: "pending" }),
+    Consultation.countDocuments({ status: "open" }),
+    Consultation.countDocuments({ status: "answered" }),
+  ]);
 
   const requests = Object.fromEntries(requestsByStatus.map((r) => [r._id, r.count]));
   const stock = Object.fromEntries(unitsByGroup.map((r) => [r._id, r.units]));
@@ -72,6 +82,8 @@ export const getStats = asyncHandler(async (req, res) => {
       requests,
       stock,
       complaints: { open: openComplaints, inReview: inReviewComplaints },
+      doctors: { approved: approvedDoctors, pending: pendingDoctors },
+      consultations: { open: openConsultations, answered: answeredConsultations },
     },
   });
 });
@@ -108,6 +120,10 @@ export const updateUser = asyncHandler(async (req, res) => {
   if (!user) throw new ApiError(404, "User not found");
 
   const { role, isActive } = req.body;
+  // Doctor accounts are managed from the Doctors tab, which keeps the DoctorProfile in step
+  if (role !== undefined && user.role === "doctor") {
+    throw new ApiError(409, "This account is a volunteer doctor. Suspend them from the Doctors tab to change their role.");
+  }
   if (role !== undefined) {
     user.role = role;
     user.bloodBank = undefined; // "user" and "admin" are never tied to a bank
@@ -218,5 +234,98 @@ export const listAllDonors = asyncHandler(async (req, res) => {
       lastDonationDate: d.lastDonationDate,
       createdAt: d.createdAt,
     })),
+  });
+});
+
+// ---------- Doctors ----------
+
+const DOCTOR_STATUS_TEXT = {
+  approved: "approved. You can now answer questions from the doctor portal",
+  rejected: "not approved",
+  suspended: "suspended",
+};
+
+// GET /api/admin/doctors?status=&q=&page=
+export const listDoctorApplications = asyncHandler(async (req, res) => {
+  const { page, limit } = pageParams(req);
+  const filter = {};
+  if (str(req.query.status)) filter.status = req.query.status;
+  const q = str(req.query.q);
+  if (q) {
+    const re = new RegExp(escapeRegex(q), "i");
+    const userIds = await User.find({ $or: [{ name: re }, { phone: re }, { email: re }] }).distinct("_id");
+    filter.$or = [{ user: { $in: userIds } }, { bmdcNo: re }, { hospital: re }, { district: re }];
+  }
+
+  const [rows, total] = await Promise.all([
+    DoctorProfile.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate("user", "name avatar phone email"),
+    DoctorProfile.countDocuments(filter),
+  ]);
+  res.json({
+    success: true,
+    ...paged(page, limit, total),
+    doctors: rows.map((p) => ({
+      ...toDoctorOwn(p),
+      user: p.user ? { id: p.user._id, name: p.user.name, phone: p.user.phone, email: p.user.email } : null,
+    })),
+  });
+});
+
+// PATCH /api/admin/doctors/:id   Body: { status: approved|rejected|suspended, reviewNote? }
+// approved → role "doctor"; rejected/suspended → role back to "user" (only if it was "doctor")
+export const reviewDoctor = asyncHandler(async (req, res) => {
+  const profile = await DoctorProfile.findById(req.params.id);
+  if (!profile) throw new ApiError(404, "Doctor application not found");
+  const user = await User.findById(profile.user);
+  if (!user) throw new ApiError(404, "The applicant's account no longer exists");
+  if (user._id.equals(req.user._id)) throw new ApiError(400, "You cannot review your own application");
+
+  const { status, reviewNote } = req.body;
+  if (status === "approved" && !["user", "doctor"].includes(user.role)) {
+    throw new ApiError(409, "Only a regular member account can be approved as a doctor (this one is an admin or bank staff)");
+  }
+
+  profile.status = status;
+  if (reviewNote !== undefined) profile.reviewNote = str(reviewNote);
+  profile.reviewedBy = req.user._id;
+  profile.reviewedAt = new Date();
+  await profile.save();
+
+  if (status === "approved" && user.role !== "doctor") {
+    user.role = "doctor";
+    user.bloodBank = undefined;
+    await user.save();
+  } else if (status !== "approved" && user.role === "doctor") {
+    user.role = "user";
+    await user.save();
+  }
+
+  if (status !== "approved") {
+    // Questions they took but never answered go back to the queue for other doctors
+    await Consultation.updateMany(
+      { doctor: user._id, status: "claimed" },
+      { $set: { status: "open", lastActivityAt: new Date() }, $unset: { doctor: 1, claimedAt: 1, doctorSeenAt: 1 } }
+    ).catch((err) => console.error("Releasing a doctor's questions failed:", err.message));
+  }
+
+  await notifyConsultation(user._id, {
+    title: "Your doctor application",
+    message:
+      `Your volunteer doctor profile was ${DOCTOR_STATUS_TEXT[status]}.` +
+      (profile.reviewNote ? ` Note from the admin: ${profile.reviewNote}` : ""),
+    link: status === "approved" ? "/doctor-portal" : "/doctors/join",
+  });
+
+  await profile.populate("user", "name avatar phone email");
+  res.json({
+    success: true,
+    doctor: {
+      ...toDoctorOwn(profile),
+      user: { id: profile.user._id, name: profile.user.name, phone: profile.user.phone, email: profile.user.email },
+    },
   });
 });

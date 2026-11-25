@@ -45,6 +45,7 @@ const profileRules = [
   body("allowPhoneVisible").optional().isBoolean().withMessage("allowPhoneVisible must be true or false"),
   body("showOnLeaderboard").optional().isBoolean().withMessage("showOnLeaderboard must be true or false"),
   body("emailAlerts").optional().isBoolean().withMessage("emailAlerts must be true or false"),
+  body("clearLocation").optional().isBoolean({ strict: true }).withMessage("clearLocation must be true or false"),
   body("lastDonationDate")
     .optional({ values: "falsy" })
     .isISO8601().withMessage("Invalid date").bail()

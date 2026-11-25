@@ -1,6 +1,6 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { Sparkles, AlertTriangle, Info } from "lucide-react";
+import { Sparkles, AlertTriangle, Info, MapPin, ChevronDown, CheckCircle2 } from "lucide-react";
 import { parseRequestText, createRequest } from "../services/requests";
 import { parseError } from "../utils/errors";
 import VoiceInput from "./VoiceInput";
@@ -11,6 +11,8 @@ import FormField from "./FormField";
 import SelectField from "./SelectField";
 import useT from "../i18n/useT";
 import requests from "../i18n/requests";
+import mapDict from "../i18n/map";
+import LocationPicker from "./map/LocationPicker";
 
 const EMPTY = {
   patientName: "",
@@ -50,6 +52,9 @@ function validate(f, t) {
 
 export default function RequestForm({ defaultPhone, onCreated }) {
   const { t, n, dist } = useT(requests);
+  const { t: tm } = useT(mapDict);
+  const [hospitalPoint, setHospitalPoint] = useState(null); // { lat, lng } | null
+  const [showMap, setShowMap] = useState(false);
   const [form, setForm] = useState({ ...EMPTY, contactPhone: defaultPhone || "" });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -129,6 +134,10 @@ export default function RequestForm({ defaultPhone, onCreated }) {
     };
     if (form.contactPhone.trim()) payload.contactPhone = cleanPhone(form.contactPhone);
     if (form.notes.trim()) payload.notes = form.notes.trim();
+    if (hospitalPoint) {
+      payload.latitude = hospitalPoint.lat;
+      payload.longitude = hospitalPoint.lng;
+    }
     if (aiUsed && rawText.trim()) {
       payload.rawText = rawText.trim();
       payload.parsedFromText = true;
@@ -310,6 +319,35 @@ export default function RequestForm({ defaultPhone, onCreated }) {
             error={errors.contactPhone}
             hint={t("contactPhoneHint")}
           />
+        </div>
+
+        {/* Optional hospital pin */}
+        <div className="rounded-xl border border-gray-200 p-4">
+          <button
+            type="button"
+            onClick={() => setShowMap((v) => !v)}
+            aria-expanded={showMap}
+            aria-controls="hospital-location-picker"
+            className="flex w-full items-start justify-between gap-3 text-left"
+          >
+            <span>
+              <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                <MapPin size={16} className="text-brand-red" />
+                {tm("hospitalLocationTitle")}
+                {hospitalPoint && <CheckCircle2 size={15} className="text-green-600" aria-hidden="true" />}
+              </span>
+              <span className="mt-0.5 block text-xs text-gray-500">{tm("hospitalLocationHint")}</span>
+            </span>
+            <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-brand-blue">
+              {showMap ? tm("hideMap") : tm("addHospitalLocation")}
+              <ChevronDown size={14} className={`transition ${showMap ? "rotate-180" : ""}`} />
+            </span>
+          </button>
+          {showMap && (
+            <div id="hospital-location-picker" className="mt-4">
+              <LocationPicker value={hospitalPoint} onChange={setHospitalPoint} height={280} />
+            </div>
+          )}
         </div>
 
         <label className="block">

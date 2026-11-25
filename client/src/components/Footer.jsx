@@ -11,6 +11,7 @@ const COLUMNS = [
       ["/donors", "fFindDonors"],
       ["/requests", "fRequests"],
       ["/requests/new", "fPostRequest"],
+      ["/doctors", "fAskDoctor"],
       ["/blood-banks", "fBanks"],
     ],
   },
@@ -28,6 +29,7 @@ const COLUMNS = [
     links: [
       ["/bank-portal/register", "fRegisterBank"],
       ["/bank-portal", "fBankPortal"],
+      ["/doctors/join", "fJoinDoctor"],
     ],
   },
   {

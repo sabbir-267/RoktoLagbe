@@ -936,6 +936,27 @@ export default [
     follow: ["donation_history", "donations_per_year", "phone_privacy"],
   },
   {
+    id: "ask_doctor",
+    examples: [
+      "can I ask a doctor", "I want to talk to a doctor", "is there a doctor I can consult", "ask a doctor online",
+      "I have a medical question for a doctor", "doctor consultation", "free doctor advice", "can a doctor answer my question",
+      "need doctor advice about my thalassemia child", "how do I become a volunteer doctor on this site", "I am a doctor, can I join",
+      "ডাক্তারের সাথে কথা বলতে চাই", "ডাক্তারকে প্রশ্ন করতে চাই", "ডাক্তারের পরামর্শ দরকার", "অনলাইনে ডাক্তারের পরামর্শ",
+      "আমি একজন ডাক্তার, কীভাবে যুক্ত হব",
+      "doctor er sathe kotha bolte chai", "daktar er poramorsho lagbe", "doctor ke proshno korbo kivabe", "online doctor ache?",
+    ],
+    answer: {
+      en: "Yes. Use **Ask a doctor**: verified volunteer doctors answer health questions, for example about donation eligibility, transfusions or thalassemia.\n\n- Your question is **private**: only you and the doctor see it (you can choose to share it anonymously).\n- It's general guidance, not a diagnosis or prescription.\n- **Emergency? Call 999** instead.\n\nDoctors can apply to join; an admin verifies their BMDC registration first.",
+      bn: "হ্যাঁ। **ডাক্তারকে জিজ্ঞাসা করুন** ব্যবহার করুন: যাচাই করা স্বেচ্ছাসেবী ডাক্তাররা স্বাস্থ্য বিষয়ক প্রশ্নের উত্তর দেন, যেমন রক্তদানের যোগ্যতা, রক্ত নেওয়া বা থ্যালাসেমিয়া নিয়ে।\n\n- আপনার প্রশ্ন **গোপন** থাকে: শুধু আপনি ও ডাক্তার দেখতে পান (চাইলে নাম ছাড়া সবার সাথে শেয়ার করতে পারেন)।\n- এটি সাধারণ পরামর্শ, রোগ নির্ণয় বা প্রেসক্রিপশন নয়।\n- **জরুরি অবস্থায় ৯৯৯-এ কল করুন।**\n\nডাক্তাররাও যুক্ত হতে আবেদন করতে পারেন; অ্যাডমিন আগে তাদের BMDC নিবন্ধন যাচাই করেন।",
+    },
+    links: [
+      { to: "/doctors", label: { en: "Ask a doctor", bn: "ডাক্তারকে জিজ্ঞাসা করুন" } },
+      { to: "/doctors/join", label: { en: "Join as a doctor", bn: "ডাক্তার হিসেবে যুক্ত হোন" } },
+    ],
+    chip: { en: "Ask a doctor", bn: "ডাক্তারকে জিজ্ঞাসা করুন" },
+    follow: ["who_can_donate", "waiting_periods", "complaint_box"],
+  },
+  {
     id: "complaint_box",
     examples: [
       "সমস্যা হলে কাকে বলব", "অ্যাপে সমস্যা", "kothay problem janabo",

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
-import { UserRound, HeartPulse, ClipboardList, Smartphone, ShieldCheck, Building2 } from "lucide-react";
+import { Stethoscope, UserRound, HeartPulse, ClipboardList, Smartphone, ShieldCheck, Building2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { getMyProfile, setAvailability } from "../services/donors";
 import { unwrapDonor, normalizeDonor } from "../utils/donors";
@@ -12,7 +12,7 @@ import DonationHistory from "../components/DonationHistory";
 import useT from "../i18n/useT";
 import dict from "../i18n/dashboard";
 
-const ROLES = ["user", "bank_staff", "admin"];
+const ROLES = ["user", "bank_staff", "admin", "doctor"];
 
 export default function Dashboard() {
   const { t, date, dist } = useT(dict);
@@ -89,6 +89,15 @@ export default function Dashboard() {
           title={t("adminTitle")}
           text={t("adminText")}
           action={t("adminAction")}
+        />
+      )}
+      {user.role === "doctor" && (
+        <PortalBanner
+          icon={Stethoscope}
+          to="/doctor-portal"
+          title={t("doctorTitle")}
+          text={t("doctorText")}
+          action={t("doctorAction")}
         />
       )}
       {user.role === "bank_staff" && (

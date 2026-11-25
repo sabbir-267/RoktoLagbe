@@ -35,6 +35,8 @@ const toDonorDto = (d, viewer) => {
     allowPhoneVisible: isOwner ? d.allowPhoneVisible : undefined,
     showOnLeaderboard: isOwner ? d.showOnLeaderboard !== false : undefined,
     emailAlerts: isOwner ? d.emailAlerts !== false : undefined,
+    // The exact point is private: only the owner gets it back (others only see distances)
+    coordinates: isOwner && d.location?.coordinates?.length === 2 ? d.location.coordinates : undefined,
     phone: showPhone ? d.user?.phone : undefined,
     dateOfBirth: isOwner ? d.dateOfBirth : undefined,
     weightKg: isOwner ? d.weightKg : undefined,
@@ -65,6 +67,9 @@ export const upsertMyProfile = asyncHandler(async (req, res) => {
 
   for (const key of SETTABLE) {
     if (req.body[key] !== undefined) profile.set(key, req.body[key]);
+  }
+  if (req.body.clearLocation === true && latitude === undefined) {
+    profile.location = undefined; // the donor removed their "usual area" pin
   }
   if (latitude !== undefined) {
     profile.location = { type: "Point", coordinates: [Number(longitude), Number(latitude)] };

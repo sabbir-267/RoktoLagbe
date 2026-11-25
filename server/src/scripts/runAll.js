@@ -24,6 +24,8 @@ const SUITES = [
   { name: "Requests (live)", script: "test:requests", live: true },
   { name: "Matching and notifications (live)", script: "test:match:live", live: true },
   { name: "Security (live)", script: "test:security", live: true },
+  { name: "Ask a doctor (live)", script: "test:consult", live: true },
+  { name: "Live trip tracking (live)", script: "test:trip", live: true },
   { name: "AI parsing (live)", script: "test:parser:live", live: true, needsAi: true },
 ];
 

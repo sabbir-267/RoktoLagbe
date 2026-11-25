@@ -18,6 +18,9 @@ import Spinner from "../components/Spinner";
 import EmailVerifyCard from "../components/EmailVerifyCard";
 import useT from "../i18n/useT";
 import dict from "../i18n/donorProfile";
+import mapDict from "../i18n/map";
+import LocationPicker from "../components/map/LocationPicker";
+import { fromLngLat } from "../components/map/geo";
 
 const EMPTY = {
   bloodGroup: "",
@@ -72,6 +75,9 @@ function Section({ title, children }) {
 
 export default function DonorProfile() {
   const { t, dist } = useT(dict);
+  const { t: tm } = useT(mapDict);
+  const [area, setArea] = useState(null); // "my usual area" pin { lat, lng } | null
+  const [hadArea, setHadArea] = useState(false); // a point is already saved on the server
   const navigate = useNavigate();
   const { user } = useAuth();
   const [form, setForm] = useState(EMPTY);
@@ -87,9 +93,14 @@ export default function DonorProfile() {
     getMyProfile()
       .then((data) => {
         if (cancelled) return;
-        const d = normalizeDonor(unwrapDonor(data));
+        const raw = unwrapDonor(data);
+        const d = normalizeDonor(raw);
         if (!d) return;
         setExists(true);
+        // Only the owner gets their own point back, as GeoJSON [lng, lat]
+        const saved = fromLngLat(raw?.coordinates);
+        setArea(saved);
+        setHadArea(Boolean(saved));
         setDobLocked(Boolean(d.dateOfBirth));
         setForm({
           ...EMPTY,
@@ -158,6 +169,12 @@ export default function DonorProfile() {
     Object.entries(optional).forEach(([key, value]) => {
       if (value !== "") payload[key] = value;
     });
+    if (area) {
+      payload.latitude = area.lat;
+      payload.longitude = area.lng;
+    } else if (hadArea) {
+      payload.clearLocation = true; // the saved pin was removed
+    }
 
     setSubmitting(true);
     try {
@@ -352,6 +369,13 @@ export default function DonorProfile() {
               hint={t("groupHint")}
             />
           </div>
+        </Section>
+
+        <Section title={tm("usualAreaTitle")}>
+          <p className="-mt-2 text-sm text-gray-500">{tm("usualAreaHint")}</p>
+          <p className="mb-4 mt-1 text-xs text-green-700">{tm("usualAreaPrivacy")}</p>
+          <LocationPicker value={area} onChange={setArea} height={260} />
+          {hadArea && !area && <p className="mt-2 text-xs text-amber-700">{tm("clearWillRemove")}</p>}
         </Section>
 
         <Section title={t("donationHistory")}>

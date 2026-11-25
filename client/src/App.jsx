@@ -25,6 +25,12 @@ import Settings from "./pages/Settings";
 import Messages from "./pages/Messages";
 import Leaderboard from "./pages/Leaderboard";
 import Complaints from "./pages/Complaints";
+import DoctorsHome from "./pages/doctors/DoctorsHome";
+import AskDoctor from "./pages/doctors/AskDoctor";
+import DoctorJoin from "./pages/doctors/DoctorJoin";
+import MyConsultations from "./pages/doctors/MyConsultations";
+import ConsultationDetail from "./pages/doctors/ConsultationDetail";
+import DoctorPortal from "./pages/doctors/DoctorPortal";
 import AdminPortal from "./pages/admin/AdminPortal";
 import BankPortal from "./pages/bank/BankPortal";
 import BankApply from "./pages/bank/BankApply";
@@ -58,6 +64,12 @@ export default function App() {
         <Route path="/eligibility" element={<Eligibility />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/complaints" element={<Complaints />} />
+        <Route path="/doctors" element={<DoctorsHome />} />
+        <Route path="/doctors/ask" element={<ProtectedRoute><AskDoctor /></ProtectedRoute>} />
+        <Route path="/doctors/join" element={<ProtectedRoute><DoctorJoin /></ProtectedRoute>} />
+        <Route path="/consultations" element={<ProtectedRoute><MyConsultations /></ProtectedRoute>} />
+        <Route path="/consultations/:id" element={<ProtectedRoute><ConsultationDetail /></ProtectedRoute>} />
+        <Route path="/doctor-portal" element={<ProtectedRoute roles={["doctor"]}><DoctorPortal /></ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />

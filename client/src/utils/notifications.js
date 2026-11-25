@@ -7,13 +7,15 @@ export function normalizeNotification(raw) {
     title: raw.title || "",
     message: raw.message || "",
     requestId: raw.requestId || "",
+    link: typeof raw.link === "string" && raw.link.startsWith("/") && !raw.link.startsWith("//") ? raw.link : "",
     isRead: Boolean(raw.isRead),
     createdAt: raw.createdAt || "",
   };
 }
 
-// Where tapping a notification goes. Requests are the only linked item for now.
+// Where tapping a notification goes: an explicit site path, or the related request
 export function notificationLink(n) {
+  if (n.link) return n.link;
   return n.requestId ? `/requests/${n.requestId}` : null;
 }
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ShieldCheck, Users, Building2, HeartPulse, ClipboardList, Droplet, MessageSquareWarning } from "lucide-react";
+import { ShieldCheck, Users, Building2, HeartPulse, ClipboardList, Droplet, MessageSquareWarning, Stethoscope } from "lucide-react";
 import { getAdminStats } from "../../services/admin";
 import { normalizeStock } from "../../utils/banks";
 import { parseError } from "../../utils/errors";
@@ -10,11 +10,13 @@ import AdminUsers from "./AdminUsers";
 import AdminBanks from "./AdminBanks";
 import AdminDonors from "./AdminDonors";
 import AdminComplaints from "./AdminComplaints";
+import AdminDoctors from "./AdminDoctors";
 
 const TABS = [
   { key: "overview", label: "Overview" },
   { key: "banks", label: "Blood banks" },
   { key: "donors", label: "Donors" },
+  { key: "doctors", label: "Doctors" },
   { key: "users", label: "Users" },
   { key: "complaints", label: "Complaints" },
 ];
@@ -54,6 +56,7 @@ export default function AdminPortal() {
         {tab === "overview" && <Overview goTo={goTo} />}
         {tab === "banks" && <AdminBanks />}
         {tab === "donors" && <AdminDonors />}
+        {tab === "doctors" && <AdminDoctors />}
         {tab === "users" && <AdminUsers />}
         {tab === "complaints" && <AdminComplaints />}
       </div>
@@ -105,6 +108,9 @@ function Overview({ goTo }) {
   const { users, donors, banks, requests, stock } = res.stats;
   const complaints = res.stats.complaints || { open: 0, inReview: 0 };
   const activeRequests = (requests.open || 0) + (requests.in_progress || 0);
+  const doctors = res.stats.doctors || null;
+  const consultations = res.stats.consultations || null;
+  const pendingDoctors = doctors?.pending || 0;
 
   return (
     <div className="space-y-6">
@@ -116,6 +122,24 @@ function Overview({ goTo }) {
           <button
             type="button"
             onClick={() => goTo("banks")}
+            className="rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-700"
+          >
+            Review
+          </button>
+        </div>
+      )}
+
+      {pendingDoctors > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <span className="flex items-center gap-2">
+            <Stethoscope size={18} />
+            <span>
+              <strong>{pendingDoctors}</strong> doctor application{pendingDoctors === 1 ? " is" : "s are"} waiting for review.
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={() => goTo("doctors")}
             className="rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-700"
           >
             Review
@@ -187,6 +211,22 @@ function Overview({ goTo }) {
           action="Handle complaints"
           onAction={() => goTo("complaints")}
         />
+        {(doctors || consultations) && (
+          <Card
+            icon={Stethoscope}
+            title="Ask a doctor"
+            value={doctors ? doctors.approved || 0 : (consultations.open || 0) + (consultations.answered || 0)}
+            tone="text-green-700"
+            lines={[
+              ...(doctors ? [`${doctors.approved || 0} verified doctors`, `${pendingDoctors} applications pending`] : []),
+              ...(consultations
+                ? [`${consultations.open || 0} questions waiting for a doctor`, `${consultations.answered || 0} answered`]
+                : []),
+            ]}
+            action="Review doctors"
+            onAction={() => goTo("doctors")}
+          />
+        )}
       </div>
 
       <section className="rounded-2xl bg-white p-6 shadow-sm">

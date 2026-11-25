@@ -188,6 +188,7 @@ export const assignStaff = asyncHandler(async (req, res) => {
   const user = await User.findOne({ phone: normalizePhone(req.body.phone) });
   if (!user) throw new ApiError(404, "No user with that phone number");
   if (user.role === "admin") throw new ApiError(400, "Admins cannot be assigned as bank staff");
+  if (user.role === "doctor") throw new ApiError(409, "This account is a volunteer doctor and cannot also be bank staff");
   if (user.bloodBank && !user.bloodBank.equals(bank._id)) {
     throw new ApiError(409, "This user is already staff at another blood bank");
   }
