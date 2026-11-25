@@ -31,8 +31,8 @@ services:
         value: 769359302180-efuhdi9cdarl7f5veqbb8cjph1hvgde6.apps.googleusercontent.com
       # Email via the Gmail relay (Google Apps Script, see server/scripts/gmail-relay.gs).
       # Free Render blocks SMTP ports, so this HTTPS relay is the way to send email here.
-      - key: EMAIL_RELAY_URL # the Apps Script "Web app URL" ending in /exec
-        sync: false
+      - key: EMAIL_RELAY_URL # the Apps Script "Web app URL" (not secret: the relay checks EMAIL_RELAY_SECRET)
+        value: https://script.google.com/macros/s/AKfycbzG2nekG8mv92zh-mz2AFTYOdiQ1WIyEP48-jjyNiAtzHpMWJ7Oi8_p6UJCL6HH9SNHZA/exec
       - key: EMAIL_RELAY_SECRET # long random value, same as RELAY_SECRET in the script's properties
         sync: false
       # SMTP (alternative to the relay; only works on hosts that allow SMTP ports)
