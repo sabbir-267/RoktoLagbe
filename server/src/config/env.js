@@ -36,13 +36,9 @@ export const validateEnv = (env = process.env) => {
   }
 
   // Optional features: warn, never block
-  let aiDisabled = false;
-  if (!env.ANTHROPIC_API_KEY) {
-    warnings.push("ANTHROPIC_API_KEY is not set: AI request parsing is disabled");
-  } else if (PLACEHOLDER.test(env.ANTHROPIC_API_KEY)) {
-    warnings.push("ANTHROPIC_API_KEY is a placeholder: AI request parsing is disabled");
-    aiDisabled = true;
-  }
+  // No AI key is fine: request parsing and the assistant use the free offline versions.
+  // A placeholder key is treated as no key, so it never causes failing API calls.
+  const aiDisabled = Boolean(env.ANTHROPIC_API_KEY) && PLACEHOLDER.test(env.ANTHROPIC_API_KEY);
   if (!env.GOOGLE_CLIENT_ID) warnings.push("GOOGLE_CLIENT_ID is not set: Google login is disabled");
 
   const smtpVars = ["SMTP_HOST", "SMTP_USER", "SMTP_PASS"];

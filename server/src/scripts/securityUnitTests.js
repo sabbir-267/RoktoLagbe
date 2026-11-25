@@ -114,10 +114,11 @@ t("a placeholder AI key only disables AI, it never blocks startup", () => {
   assert.deepEqual(r.problems, []);
   assert.equal(r.aiDisabled, true);
 });
-t("a missing AI key is a warning, not a problem", () => {
+t("a missing AI key is fine: no problem and no warning (the free parser and assistant are used)", () => {
   const r = validateEnv(good);
   assert.deepEqual(r.problems, []);
-  assert.ok(r.warnings.some((x) => x.includes("ANTHROPIC_API_KEY")));
+  assert.equal(r.aiDisabled, false);
+  assert.ok(!r.warnings.some((x) => x.includes("ANTHROPIC_API_KEY")));
 });
 t("a real-looking AI key keeps AI enabled", () => {
   const r = validateEnv({ ...good, ANTHROPIC_API_KEY: "sk-ant-api03-" + randomBytes(24).toString("hex") });
