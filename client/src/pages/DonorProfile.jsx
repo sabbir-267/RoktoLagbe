@@ -33,6 +33,7 @@ const EMPTY = {
   lastDonationDate: "",
   allowPhoneVisible: false,
   showOnLeaderboard: true,
+  emailAlerts: true,
 };
 
 function validate(f, exists, dobLocked, t) {
@@ -105,6 +106,7 @@ export default function DonorProfile() {
           lastDonationDate: toDateInput(d.lastDonationDate),
           allowPhoneVisible: d.allowPhoneVisible,
           showOnLeaderboard: d.showOnLeaderboard !== false,
+          emailAlerts: d.emailAlerts !== false,
         });
       })
       .catch((err) => {
@@ -142,6 +144,7 @@ export default function DonorProfile() {
       district: form.district,
       allowPhoneVisible: form.allowPhoneVisible,
       showOnLeaderboard: form.showOnLeaderboard,
+      emailAlerts: form.emailAlerts,
     };
     // Optional fields go only when filled in
     const optional = {
@@ -393,6 +396,19 @@ export default function DonorProfile() {
               <span className="block text-gray-500">
                 {t("showLeaderboardHint")}
               </span>
+            </span>
+          </label>
+          <label className="mt-4 flex items-start gap-3">
+            <input
+              type="checkbox"
+              name="emailAlerts"
+              checked={form.emailAlerts}
+              onChange={handleChange}
+              className="mt-1 h-4 w-4 accent-brand-red"
+            />
+            <span className="text-sm text-gray-700">
+              <strong>{t("emailAlerts")}</strong>
+              <span className="block text-gray-500">{t("emailAlertsHint")}</span>
             </span>
           </label>
         </Section>

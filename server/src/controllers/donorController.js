@@ -34,6 +34,7 @@ const toDonorDto = (d, viewer) => {
     nextEligibleDate: nextEligibleDate(d.lastDonationDate),
     allowPhoneVisible: isOwner ? d.allowPhoneVisible : undefined,
     showOnLeaderboard: isOwner ? d.showOnLeaderboard !== false : undefined,
+    emailAlerts: isOwner ? d.emailAlerts !== false : undefined,
     phone: showPhone ? d.user?.phone : undefined,
     dateOfBirth: isOwner ? d.dateOfBirth : undefined,
     weightKg: isOwner ? d.weightKg : undefined,
@@ -42,7 +43,7 @@ const toDonorDto = (d, viewer) => {
 
 const USER_FIELDS = "name phone avatar";
 const SETTABLE = [
-  "gender", "weightKg", "dateOfBirth", "lastDonationDate", "allowPhoneVisible", "showOnLeaderboard",
+  "gender", "weightKg", "dateOfBirth", "lastDonationDate", "allowPhoneVisible", "showOnLeaderboard", "emailAlerts",
   "division", "district", "upazila", "area", "campus", "group",
 ];
 

@@ -19,6 +19,7 @@ import Notification from "../models/Notification.js";
 import { compatibleDonorGroups } from "../utils/compatibility.js";
 import { eligibleCutoff } from "../utils/eligibility.js";
 import { rankDonors } from "./matchScoring.js";
+import { emitToUser } from "./socket.js";
 
 export const MAX_NOTIFIED_PER_REQUEST = 20;
 const ACTIVE = ["open", "in_progress"];
@@ -104,12 +105,14 @@ export const notifyDonors = async (request, { limit = 10, includeOtherDistricts 
         `${request.hospital} by ${formatWhen(request.neededBy)}. Open the request to respond.`,
       relatedRequest: request._id,
     });
+    emitToUser(m.donor.user._id, "notification:new", { type: "donor_match", requestId: request._id });
     notified.push(m);
   }
 
   const total = already.size + notified.length;
   return {
     notified: notified.map((m) => ({ donorId: m.donor._id, name: m.donor.user.name, score: m.score })),
+    notifiedDonors: notified.map((m) => m.donor), // full records, for follow-up alerts (not sent to clients)
     skipped: {
       alreadyNotified: ranked.length - fresh.length,
       cooldown: fresh.length - eligible.length,

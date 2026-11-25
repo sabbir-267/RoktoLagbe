@@ -1,3 +1,4 @@
+import { autoNotifyForRequest } from "../services/autoNotify.js";
 import DonorProfile from "../models/DonorProfile.js";
 import BloodRequest from "../models/BloodRequest.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -47,6 +48,11 @@ const toRequestDto = (r, viewer) => {
     contactPhone: viewer ? r.contactPhone : undefined,
     patientName: owner || isPrivileged(viewer) ? r.patientName : undefined,
     isMine: owner || undefined,
+    // Only the requester sees how many donors were alerted automatically
+    autoNotify:
+      owner && r.autoNotify?.at
+        ? { at: r.autoNotify.at, notified: r.autoNotify.notified || 0, widened: !!r.autoNotify.widened, emailed: r.autoNotify.emailed || 0 }
+        : undefined,
   };
 };
 
@@ -92,7 +98,15 @@ export const createRequest = asyncHandler(async (req, res) => {
   if (coords) doc.location = coords;
   await doc.save();
 
-  res.status(201).json({ success: true, request: toRequestDto(doc, req.user) });
+  // Alert matching donors right away. A problem here must never undo the request itself.
+  let autoNotify = null;
+  try {
+    autoNotify = await autoNotifyForRequest(doc);
+  } catch (err) {
+    console.error("Automatic donor alert failed:", err.message);
+  }
+
+  res.status(201).json({ success: true, request: toRequestDto(doc, req.user), autoNotify });
 });
 
 export const listRequests = asyncHandler(async (req, res) => {

@@ -136,8 +136,9 @@ export default function RequestForm({ defaultPhone, onCreated }) {
 
     setSubmitting(true);
     try {
-      const { request } = await createRequest(payload);
-      toast.success(t("live"));
+      const { request, autoNotify } = await createRequest(payload);
+      const alerted = autoNotify?.notified || 0;
+      toast.success(alerted ? t("liveAlerted", { count: alerted }) : t("live"), { duration: 6000 });
       onCreated(request);
     } catch (err) {
       const { message, fields } = parseError(err);

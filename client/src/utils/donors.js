@@ -58,6 +58,7 @@ export function normalizeDonor(raw) {
     totalDonations: raw.totalDonations ?? 0,
     allowPhoneVisible: Boolean(raw.allowPhoneVisible),
     showOnLeaderboard: raw.showOnLeaderboard !== false,
+    emailAlerts: raw.emailAlerts !== false,
     available: raw.isAvailable ?? true, // switch on AND eligible (worked out by the server)
     availabilityOn: raw.availabilityOn ?? raw.isAvailable ?? true, // the donor's own switch
     verified: Boolean(raw.isVerified),

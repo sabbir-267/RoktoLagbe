@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import {
+import { BellRing,
   ArrowLeft,
   Clock,
   Droplets,
@@ -267,6 +267,18 @@ export default function RequestDetail() {
                     </form>
                   )}
                 </section>
+              )}
+
+              {r.isMine && r.autoNotify && (
+                <p className="mt-6 flex items-start gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
+                  <BellRing size={18} className="mt-0.5 shrink-0" />
+                  <span>
+                    {r.autoNotify.notified
+                      ? t(r.autoNotify.widened ? "autoAlertedWide" : "autoAlerted", { count: r.autoNotify.notified })
+                      : t("autoNone")}
+                    {r.autoNotify.emailed > 0 && ` ${t("autoEmailed", { count: r.autoNotify.emailed })}`}
+                  </span>
+                </p>
               )}
 
               <DonorMatches requestId={r.id} active={active} onChanged={reload} />

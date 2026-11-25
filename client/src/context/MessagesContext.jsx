@@ -48,6 +48,8 @@ export function MessagesProvider({ children }) {
     s.on("disconnect", onDisconnect);
     s.on("message:new", onNew);
     s.on("conversation:read", refreshUnread);
+    // The notification bell lives in another context; nudge it to refresh now
+    s.on("notification:new", () => window.dispatchEvent(new Event("notifications:refresh")));
 
     return () => {
       s.off();

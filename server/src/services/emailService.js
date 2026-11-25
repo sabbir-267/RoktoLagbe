@@ -155,6 +155,31 @@ export const sendVerificationEmail = (to, name, token) => {
   });
 };
 
+// Sent to matched donors for urgent requests. No patient name or phone number, like the in-app alert.
+export const sendDonorAlertEmail = (to, name, request) => {
+  const link = `${clientUrl()}/requests/${request._id}`;
+  const when = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Dhaka", dateStyle: "medium", timeStyle: "short" }).format(new Date(request.neededBy));
+  const what = `${request.unitsNeeded} bag(s) of ${request.bloodGroup}`;
+  return sendEmail({
+    to,
+    subject: `Urgent: ${request.bloodGroup} blood needed in ${request.district}`,
+    text:
+      `Hi ${name},\n\n${what} blood is needed at ${request.hospital}, ${request.district} by ${when}.\n` +
+      `You are a matching donor nearby. If you can help, open the request and tap "I can donate":\n${link}\n\n` +
+      `Blood donation is always free. Never pay or accept money for it.\n` +
+      `To stop these emails, turn off "Email me about urgent requests" in your donor profile.`,
+    html: layout(
+      `${escapeHtml(request.bloodGroup)} blood needed in ${escapeHtml(request.district)}`,
+      `<p>Hi ${escapeHtml(name)},</p>
+       <p><strong>${escapeHtml(what)}</strong> blood is needed at <strong>${escapeHtml(request.hospital)}</strong>, ${escapeHtml(request.district)} by <strong>${escapeHtml(when)}</strong>.</p>
+       <p>You are a matching donor nearby. If you can help, open the request and tap <em>I can donate</em>.</p>
+       ${button(link, "View the request")}
+       <p style="font-size:12px;color:#6b7280">Blood donation is always free. Never pay or accept money for it.<br>
+       To stop these emails, turn off "Email me about urgent requests" in your donor profile.</p>`
+    ),
+  });
+};
+
 export const sendPasswordResetEmail = (to, name, token) => {
   const link = `${clientUrl()}/reset-password/${token}`;
   return sendEmail({

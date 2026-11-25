@@ -47,6 +47,7 @@ export function normalizeRequest(raw) {
     patientName: raw.patientName || "",
     isMine: Boolean(raw.isMine),
     myResponse: raw.myResponse || "",
+    autoNotify: raw.autoNotify || null, // only sent to the requester
   };
 }
 

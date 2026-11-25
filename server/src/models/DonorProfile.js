@@ -32,6 +32,7 @@ const donorProfileSchema = new mongoose.Schema(
     medicalNotes: { type: String, select: false }, // private
     allowPhoneVisible: { type: Boolean, default: false },
     showOnLeaderboard: { type: Boolean, default: true }, // donors can opt out of the public leaderboard
+    emailAlerts: { type: Boolean, default: true }, // email me about urgent requests that match me
 
     // Verification
     isVerified: { type: Boolean, default: false },

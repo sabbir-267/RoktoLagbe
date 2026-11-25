@@ -44,6 +44,7 @@ const profileRules = [
   body("longitude").optional().isFloat({ min: -180, max: 180 }).withMessage("Invalid longitude"),
   body("allowPhoneVisible").optional().isBoolean().withMessage("allowPhoneVisible must be true or false"),
   body("showOnLeaderboard").optional().isBoolean().withMessage("showOnLeaderboard must be true or false"),
+  body("emailAlerts").optional().isBoolean().withMessage("emailAlerts must be true or false"),
   body("lastDonationDate")
     .optional({ values: "falsy" })
     .isISO8601().withMessage("Invalid date").bail()

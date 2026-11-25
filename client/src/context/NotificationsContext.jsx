@@ -40,10 +40,12 @@ export function NotificationsProvider({ children }) {
     check();
     const timer = setInterval(check, POLL_MS);
     document.addEventListener("visibilitychange", check);
+    window.addEventListener("notifications:refresh", check); // pushed over the live connection
     return () => {
       cancelled = true;
       clearInterval(timer);
       document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("notifications:refresh", check);
     };
   }, [userId]);
 

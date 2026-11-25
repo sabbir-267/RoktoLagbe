@@ -48,6 +48,12 @@ const bloodRequestSchema = new mongoose.Schema(
       },
     ],
     fulfilledUnits: { type: Number, default: 0 },
+    autoNotify: {
+      at: Date, // when matching donors were alerted automatically
+      notified: Number, // donors alerted in the app
+      widened: Boolean, // also searched other districts because none were found nearby
+      emailed: Number, // donors also alerted by email (urgent requests only)
+    },
   },
   { timestamps: true }
 );
