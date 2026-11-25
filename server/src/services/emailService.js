@@ -25,20 +25,50 @@ const relayConfigured = () => Boolean(process.env.EMAIL_RELAY_URL && process.env
 
 export const emailAvailable = () => relayConfigured() || smtpConfigured() || !isProd();
 
+// Apps Script runs doPost() when it receives the POST, then answers with a redirect to
+// googleusercontent.com where the result can be read. Some servers (cloud hosts in
+// particular) get an HTML page instead of that result. Once Google has accepted the POST
+// with a redirect, the email has already been handed over, so an unreadable confirmation
+// is logged as a warning rather than reported to the user as a failure.
+const REDIRECTS = [301, 302, 303, 307, 308];
+
+export const emailMode = () => (relayConfigured() ? "relay" : smtpConfigured() ? "smtp" : isProd() ? "off" : "console");
+
 const sendViaRelay = async ({ to, subject, text, html }) => {
-  const res = await fetch(process.env.EMAIL_RELAY_URL, {
+  const signal = AbortSignal.timeout(25_000);
+  const first = await fetch(process.env.EMAIL_RELAY_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" }, // Apps Script reads the raw body
     body: JSON.stringify({ secret: process.env.EMAIL_RELAY_SECRET, to, subject, text, html, name: "RoktoLagbe" }),
-    redirect: "follow", // Apps Script answers through a redirect to googleusercontent.com
-    signal: AbortSignal.timeout(25_000),
+    redirect: "manual",
+    signal,
   });
-  const raw = await res.text();
+
+  const accepted = REDIRECTS.includes(first.status) && first.headers.get("location");
+  let raw;
+  let status = first.status;
+  if (accepted) {
+    try {
+      const second = await fetch(first.headers.get("location"), { redirect: "follow", signal });
+      status = second.status;
+      raw = await second.text();
+    } catch (err) {
+      console.warn(`Email relay accepted the message but its confirmation could not be read (${err.message})`);
+      return;
+    }
+  } else {
+    raw = await first.text();
+  }
+
   let data;
   try {
     data = JSON.parse(raw);
   } catch {
-    throw new Error(`Relay returned HTTP ${res.status} and no JSON (is the web app deployed for "Anyone"?)`);
+    if (accepted) {
+      console.warn(`Email relay accepted the message; confirmation was not JSON (HTTP ${status}), assuming sent`);
+      return;
+    }
+    throw new Error(`Relay returned HTTP ${status} and no JSON (is the web app deployed for "Anyone"?)`);
   }
   if (!data.ok) throw new Error(`Relay refused: ${data.error || "unknown error"}`);
 };
