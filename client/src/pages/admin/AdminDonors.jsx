@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { Fragment, useCallback, useState } from "react";
 import toast from "react-hot-toast";
 import { BadgeCheck } from "lucide-react";
-import { listAllDonors, verifyDonor } from "../../services/admin";
+import { listAllDonors, verifyDonor, getDonorDonations } from "../../services/admin";
+import DonationHistory from "../../components/DonationHistory";
 import { parseError } from "../../utils/errors";
 import { formatDate } from "../../utils/donors";
 import { BLOOD_GROUPS } from "../../data/bangladesh";
@@ -11,9 +12,16 @@ import Spinner from "../../components/Spinner";
 import SearchBox from "./SearchBox";
 import usePagedList from "./usePagedList";
 
+// Loads one donor's full history (bank, requester-confirmed and self-reported)
+function DonorHistory({ donorId }) {
+  const load = useCallback(() => getDonorDonations(donorId), [donorId]);
+  return <DonationHistory load={load} bare admin />;
+}
+
 export default function AdminDonors() {
   const [filters, setFilters] = useState({ q: "", verified: "false", bloodGroup: "", page: 1 });
   const [busyId, setBusyId] = useState(null);
+  const [openId, setOpenId] = useState(null);
 
   const params = { page: filters.page, limit: 20 };
   for (const k of ["q", "verified", "bloodGroup"]) if (filters[k]) params[k] = filters[k];
@@ -74,7 +82,8 @@ export default function AdminDonors() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {list.rows.map((d) => (
-                  <tr key={d.id} className="align-middle">
+                  <Fragment key={d.id}>
+                  <tr className="align-middle">
                     <td className="px-4 py-3 text-lg font-extrabold text-brand-red">{d.bloodGroup}</td>
                     <td className="px-4 py-3">
                       <div className="font-semibold text-gray-800">
@@ -91,6 +100,14 @@ export default function AdminDonors() {
                       {d.lastDonationDate && (
                         <div className="text-xs text-gray-400">Last: {formatDate(d.lastDonationDate)}</div>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => setOpenId((id) => (id === d.id ? null : d.id))}
+                        aria-expanded={openId === d.id}
+                        className="mt-1 text-xs font-semibold text-brand-blue hover:underline"
+                      >
+                        {openId === d.id ? "Hide history" : "History"}
+                      </button>
                     </td>
                     <td className="px-4 py-3 text-gray-600">{formatDate(d.createdAt)}</td>
                     <td className="px-4 py-3">
@@ -120,6 +137,14 @@ export default function AdminDonors() {
                       )}
                     </td>
                   </tr>
+                  {openId === d.id && (
+                    <tr>
+                      <td colSpan={6} className="bg-gray-50/60 px-6 py-4">
+                        <DonorHistory donorId={d.id} />
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

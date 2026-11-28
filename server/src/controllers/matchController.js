@@ -153,6 +153,7 @@ export const getResponses = asyncHandler(async (req, res) => {
       upazila: p.upazila,
       isVerified: p.isVerified,
       phone: p.user?.phone, // shared because the donor accepted this request
+      donationConfirmed: !!m.donation,
     });
   }
 

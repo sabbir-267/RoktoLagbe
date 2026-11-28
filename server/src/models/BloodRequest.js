@@ -45,6 +45,8 @@ const bloodRequestSchema = new mongoose.Schema(
         matchScore: Number,
         response: { type: String, enum: ["pending", "accepted", "declined"], default: "pending" },
         notifiedAt: Date,
+        // Set when the requester confirms this donor actually gave blood (models/Donation.js)
+        donation: { type: mongoose.Schema.Types.ObjectId, ref: "Donation" },
         // Live trip of an accepted donor (docs/maps-and-live-tracking.md §2).
         // lat/lng/accuracy exist only while status is "on_the_way" and are seen only by
         // the requester, admins and the donor themself (see controllers/tripController.js).

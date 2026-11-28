@@ -16,6 +16,7 @@ import FormField from "../components/FormField";
 import SelectField from "../components/SelectField";
 import Spinner from "../components/Spinner";
 import EmailVerifyCard from "../components/EmailVerifyCard";
+import DonationHistory from "../components/DonationHistory";
 import useT from "../i18n/useT";
 import dict from "../i18n/donorProfile";
 import mapDict from "../i18n/map";
@@ -79,7 +80,7 @@ export default function DonorProfile() {
   const [area, setArea] = useState(null); // "my usual area" pin { lat, lng } | null
   const [hadArea, setHadArea] = useState(false); // a point is already saved on the server
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState({});
   const [exists, setExists] = useState(false);
@@ -179,6 +180,8 @@ export default function DonorProfile() {
     setSubmitting(true);
     try {
       await saveMyProfile(payload);
+      // A new donor: re-read the account so "Become a donor" buttons disappear
+      if (!exists) await refreshUser().catch(() => {});
       toast.success(exists ? t("updated") : t("created"));
       navigate("/dashboard");
     } catch (err) {
@@ -453,6 +456,12 @@ export default function DonorProfile() {
           </Link>
         </div>
       </form>
+
+      {exists && (
+        <div className="mt-8">
+          <DonationHistory />
+        </div>
+      )}
     </div>
   );
 }

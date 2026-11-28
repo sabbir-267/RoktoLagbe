@@ -11,7 +11,8 @@ import { notifyConsultation } from "../services/consultationNotify.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { normalizeBloodGroup } from "../utils/bloodGroup.js";
-import { eligibleCutoff, isEligibleNow } from "../utils/eligibility.js";
+import { eligibleCutoff, isEligibleNow, nextEligibleDate } from "../utils/eligibility.js";
+import { historyFor } from "../services/donationHistory.js";
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const str = (v) => (typeof v === "string" ? v.trim() : "");
@@ -234,6 +235,19 @@ export const listAllDonors = asyncHandler(async (req, res) => {
       lastDonationDate: d.lastDonationDate,
       createdAt: d.createdAt,
     })),
+  });
+});
+
+// GET /api/admin/donors/:id/donations   One donor's full donation history (id = donor profile id)
+export const getDonorDonations = asyncHandler(async (req, res) => {
+  const profile = await DonorProfile.findById(req.params.id).select("_id lastDonationDate totalDonations");
+  if (!profile) throw new ApiError(404, "Donor not found");
+  res.json({
+    success: true,
+    lastDonationDate: profile.lastDonationDate || null,
+    nextEligibleDate: nextEligibleDate(profile.lastDonationDate),
+    totalDonations: profile.totalDonations,
+    donations: await historyFor(profile),
   });
 });
 

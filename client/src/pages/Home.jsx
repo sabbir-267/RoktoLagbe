@@ -7,6 +7,8 @@ import { api } from "../services/api";
 import { listRequests } from "../services/requests";
 import { normalizeRequest } from "../utils/requests";
 import BloodGroupPicker from "../components/BloodGroupPicker";
+import { useAuth } from "../context/AuthContext";
+import { becomeDonorLink } from "../utils/donorCta";
 import StatCounter from "../components/StatCounter";
 import RequestCard from "../components/RequestCard";
 import useT from "../i18n/useT";
@@ -29,6 +31,8 @@ const trust = ["trustFree", "trustConsent", "trustDistricts"];
 
 export default function Home() {
   const { t, n } = useT(dict);
+  const { user } = useAuth();
+  const donorLink = becomeDonorLink(user); // hidden for people who are already donors
   const [stats, setStats] = useState(null);
   const [urgent, setUrgent] = useState(null);
 
@@ -79,12 +83,14 @@ export default function Home() {
               >
                 {t("requestBlood")} <ArrowRight size={18} />
               </Link>
-              <Link
-                to="/register"
-                className="rounded-lg px-6 py-3 font-semibold text-white ring-1 ring-white/60 transition hover:bg-white/10"
-              >
-                {t("common:register")}
-              </Link>
+              {donorLink && (
+                <Link
+                  to={donorLink}
+                  className="rounded-lg px-6 py-3 font-semibold text-white ring-1 ring-white/60 transition hover:bg-white/10"
+                >
+                  {t("common:register")}
+                </Link>
+              )}
             </div>
             <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-red-50/90">
               {trust.map((k) => (
@@ -179,9 +185,11 @@ export default function Home() {
             {t("ctaText")}
           </p>
           <div className="relative mt-8 flex flex-wrap justify-center gap-3">
-            <Link to="/register" className="btn-primary px-6 py-3 text-base">
-              {t("common:register")}
-            </Link>
+            {donorLink && (
+              <Link to={donorLink} className="btn-primary px-6 py-3 text-base">
+                {t("common:register")}
+              </Link>
+            )}
             <Link
               to="/eligibility"
               className="rounded-lg px-6 py-3 font-semibold ring-1 ring-white/50 transition hover:bg-white/10"

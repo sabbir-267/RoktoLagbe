@@ -8,6 +8,7 @@ import { normalizeBloodGroup } from "../utils/bloodGroup.js";
 import { urgencyFromNeededBy } from "../utils/urgency.js";
 import { REQUEST_GRACE_MS } from "../services/requestService.js";
 import { endTripsForRequest } from "./tripController.js";
+import { recordRequestDonation } from "./requestDonationController.js";
 
 const MAX_ACTIVE_PER_USER = 3;
 const ACTIVE = ["open", "in_progress"];
@@ -237,5 +238,24 @@ export const setStatus = asyncHandler(async (req, res) => {
   // A closed request ends any live trips and clears their coordinates
   if (!ACTIVE.includes(status)) await endTripsForRequest(updated._id);
 
-  res.json({ success: true, request: toRequestDto(updated, req.user) });
+  // Fulfilled = the donors who said yes gave blood: record it for each of them (resets their last
+  // donation date, adds it to their history and the leaderboard). The requester can untick donors
+  // who didn't donate (donorIds); without a list every accepted donor is recorded.
+  const donations = { recorded: 0, failed: [] };
+  if (status === "fulfilled" && (owner || req.user.role === "admin")) {
+    const chosen = Array.isArray(req.body.donorIds) ? new Set(req.body.donorIds.map(String)) : null;
+    const now = new Date();
+    for (const m of updated.matchedDonors) {
+      if (m.response !== "accepted" || m.donation) continue;
+      if (chosen && !chosen.has(String(m.donor))) continue;
+      try {
+        await recordRequestDonation(updated, m.donor, now, req.user._id);
+        donations.recorded += 1;
+      } catch (err) {
+        donations.failed.push({ donorId: m.donor, message: err.message });
+      }
+    }
+  }
+
+  res.json({ success: true, request: toRequestDto(updated, req.user), donations });
 });

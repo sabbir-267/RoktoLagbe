@@ -56,7 +56,7 @@ export default function App() {
         <Route
           path="/blood-banks/:id/manage"
           element={
-            <ProtectedRoute roles={["bank_staff", "admin"]}>
+            <ProtectedRoute roles={["bank_staff"]}>
               <ManageStock />
             </ProtectedRoute>
           }

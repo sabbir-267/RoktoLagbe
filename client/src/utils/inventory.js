@@ -7,13 +7,12 @@ export const tomorrowInput = () => {
   return fmt(d);
 };
 
-// Admins can manage every bank; staff manage their own. The server enforces this too.
+// Only a bank's own staff manage its stock (admins oversee but cannot change it).
+// The server enforces this too, and also requires the bank to be approved.
 // If the logged-in user object carries no bank id, staff are shown the button everywhere
 // and the server rejects the wrong ones with a 403.
 export function canManageBank(user, bankId) {
-  if (!user) return false;
-  if (user.role === "admin") return true;
-  if (user.role !== "bank_staff") return false;
+  if (!user || user.role !== "bank_staff") return false;
   const mine = user.bloodBank?.id || user.bloodBank?._id || user.bloodBank;
   return !mine || String(mine) === String(bankId);
 }

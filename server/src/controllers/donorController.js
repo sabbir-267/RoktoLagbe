@@ -1,4 +1,5 @@
 import DonorProfile from "../models/DonorProfile.js";
+import { recordSelfReported, preserveOldDate } from "../services/donationHistory.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { normalizeBloodGroup } from "../utils/bloodGroup.js";
@@ -65,6 +66,7 @@ export const upsertMyProfile = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Blood group cannot be changed after the profile is created");
   }
 
+  const prevLast = profile.lastDonationDate ? +profile.lastDonationDate : null;
   for (const key of SETTABLE) {
     if (req.body[key] !== undefined) profile.set(key, req.body[key]);
   }
@@ -76,6 +78,14 @@ export const upsertMyProfile = asyncHandler(async (req, res) => {
   }
 
   await profile.save();
+  // A new "last donation date" typed by the donor goes into their history as self-reported
+  const newLast = profile.lastDonationDate ? +profile.lastDonationDate : null;
+  if (newLast && newLast !== prevLast) {
+    if (prevLast) await preserveOldDate(profile._id, new Date(prevLast), new Date(newLast));
+    await recordSelfReported(profile, new Date(newLast)).catch((err) =>
+      console.error("Could not add self-reported donation:", err.message)
+    );
+  }
   await profile.populate("user", USER_FIELDS);
   res.status(isNew ? 201 : 200).json({ success: true, donor: toDonorDto(profile, req.user) });
 });

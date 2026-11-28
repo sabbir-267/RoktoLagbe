@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Trophy, Medal, BadgeCheck, Droplets, Users, HeartPulse, Info } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { becomeDonorLink } from "../utils/donorCta";
 import { getLeaderboard } from "../services/donors";
 import { parseError } from "../utils/errors";
 import { BLOOD_GROUPS, DIVISIONS } from "../data/bangladesh";
@@ -229,9 +230,11 @@ export default function Leaderboard() {
                 {t("emptyText")}
               </p>
               <div className="mt-5 flex flex-wrap justify-center gap-3">
-                <Link to="/register" className="btn-primary">
-                  {t("common:register")}
-                </Link>
+                {becomeDonorLink(user) && (
+                  <Link to={becomeDonorLink(user)} className="btn-primary">
+                    {t("common:register")}
+                  </Link>
+                )}
                 <Link to="/blood-banks" className="btn-secondary">
                   {t("findBank")}
                 </Link>

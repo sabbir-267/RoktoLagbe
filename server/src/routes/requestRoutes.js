@@ -7,6 +7,7 @@ import {
 import { parseRequestText } from "../controllers/parseController.js";
 import { getMatches, notifyMatches, respondToRequest, getResponses } from "../controllers/matchController.js";
 import { tripAction, updateTripLocation, getTrips } from "../controllers/tripController.js";
+import { confirmDonation, undoDonation } from "../controllers/requestDonationController.js";
 import { protect, optionalAuth, requirePhone } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
 import { BLOOD_GROUPS, normalizeBloodGroup } from "../utils/bloodGroup.js";
@@ -115,6 +116,9 @@ const idRule = param("id").isMongoId().withMessage("Invalid request id");
 const statusRules = [
   body("status").isIn(["open", "in_progress", "fulfilled", "cancelled"]).withMessage("Invalid status"),
   body("fulfilledUnits").optional().isInt({ min: 1, max: 20 }).withMessage("fulfilledUnits must be a whole number"),
+  // Which accepted donors actually gave blood (donor profile ids); omitted = all of them
+  body("donorIds").optional().isArray({ max: 50 }).withMessage("donorIds must be a list"),
+  body("donorIds.*").isMongoId().withMessage("Invalid donor id"),
 ];
 
 const matchRules = [
@@ -170,6 +174,20 @@ router.post("/:id/respond", protect, idRule, respondRules, validate, respondToRe
 router.post("/:id/trip", protect, idRule, tripActionRules, validate, tripAction);
 router.put("/:id/trip/location", protect, tripLocationLimiter, idRule, tripLocationRules, validate, updateTripLocation);
 router.get("/:id/trips", protect, idRule, validate, getTrips);
+
+// The requester confirms a donor actually gave blood (resets their last donation date)
+const donorIdRule = param("donorId").isMongoId().withMessage("Invalid donor id");
+router.post(
+  "/:id/donations/:donorId",
+  protect, idRule, donorIdRule,
+  body("donatedAt")
+    .optional({ values: "falsy" })
+    .isISO8601().withMessage("Invalid donation date").bail()
+    .custom((v) => new Date(v) <= new Date()).withMessage("Donation date cannot be in the future"),
+  validate,
+  confirmDonation
+);
+router.delete("/:id/donations/:donorId", protect, idRule, donorIdRule, validate, undoDonation);
 
 router.get("/:id", optionalAuth, idRule, validate, getRequest);
 router.patch("/:id", protect, idRule, fields(false), validate, updateRequest);

@@ -189,29 +189,36 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm font-medium text-gray-800">{t("availableToDonate")}</p>
                   <p className="text-xs text-gray-500">
-                    {!donor.availabilityOn
-                      ? t("hiddenFromFilters")
-                      : donor.available
-                        ? t("shownInSearch")
+                    {!donor.eligible
+                      ? donor.availabilityOn
+                        ? donor.nextEligibleDate
+                          ? t("offUntil", { date: date(donor.nextEligibleDate) })
+                          : t("shownOnceEligible")
                         : donor.nextEligibleDate
-                          ? t("shownFrom", { date: date(donor.nextEligibleDate) })
-                          : t("shownOnceEligible")}
+                          ? t("offCanTurnOnFrom", { date: date(donor.nextEligibleDate) })
+                          : t("hiddenFromFilters")
+                      : donor.availabilityOn
+                        ? t("shownInSearch")
+                        : t("hiddenFromFilters")}
                   </p>
                 </div>
                 <button
                   type="button"
                   role="switch"
-                  aria-checked={donor.availabilityOn}
+                  aria-checked={donor.availabilityOn && donor.eligible}
                   aria-label={t("toggleAvailability")}
                   onClick={toggleAvailability}
-                  disabled={toggling}
-                  className={`relative h-7 w-12 rounded-full transition disabled:opacity-60 ${
-                    donor.availabilityOn ? "bg-green-500" : "bg-gray-300"
+                  // Not eligible = not available, so the switch is off and locked until the
+                  // eligible date; the saved choice switches back on by itself then.
+                  disabled={toggling || !donor.eligible}
+                  title={!donor.eligible ? t("lockedNotEligible") : undefined}
+                  className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                    donor.availabilityOn && donor.eligible ? "bg-green-500" : "bg-gray-300"
                   }`}
                 >
                   <span
                     className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
-                      donor.availabilityOn ? "translate-x-5" : ""
+                      donor.availabilityOn && donor.eligible ? "translate-x-5" : ""
                     }`}
                   />
                 </button>

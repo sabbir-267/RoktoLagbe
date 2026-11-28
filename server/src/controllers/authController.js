@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import { OAuth2Client } from "google-auth-library";
 import User from "../models/User.js";
+import DonorProfile from "../models/DonorProfile.js";
 import PasswordReset from "../models/PasswordReset.js";
 import EmailToken from "../models/EmailToken.js";
 import { sendSms, smsAvailable } from "../services/smsService.js";
@@ -135,7 +136,7 @@ export const login = asyncHandler(async (req, res) => {
   const ok = user && user.passwordHash && (await bcrypt.compare(password, user.passwordHash));
   if (!ok || !user.isActive) throw new ApiError(401, "Invalid phone/email or password");
 
-  res.json({ success: true, token: signToken(user), user: publicUser(user) });
+  res.json({ success: true, token: signToken(user), user: publicUser(user, { isDonor: await isDonor(user._id) }) });
 });
 
 export const googleLogin = asyncHandler(async (req, res) => {
@@ -182,7 +183,7 @@ export const googleLogin = asyncHandler(async (req, res) => {
   res.status(isNewUser ? 201 : 200).json({
     success: true,
     token: signToken(user),
-    user: publicUser(user),
+    user: publicUser(user, { isDonor: isNewUser ? false : await isDonor(user._id) }),
     isNewUser,
   });
 });
@@ -219,9 +220,12 @@ export const setPhone = asyncHandler(async (req, res) => {
   res.json({ success: true, user: publicUser(req.user) });
 });
 
+// Whether this account already has a donor profile (the site hides "Become a donor" for donors)
+const isDonor = async (userId) => !!(await DonorProfile.exists({ user: userId }));
+
 export const getMe = asyncHandler(async (req, res) => {
-  const hasPassword = await userHasPassword(req.user._id);
-  res.json({ success: true, user: publicUser(req.user, { hasPassword }) });
+  const [hasPassword, donor] = await Promise.all([userHasPassword(req.user._id), isDonor(req.user._id)]);
+  res.json({ success: true, user: publicUser(req.user, { hasPassword, isDonor: donor }) });
 });
 
 // ---------- Account settings ----------

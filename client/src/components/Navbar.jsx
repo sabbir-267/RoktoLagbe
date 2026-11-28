@@ -42,7 +42,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
-  const { user, logout } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
   const { t } = useT(layout);
   const links = LINKS.map((l) => ({ to: l.to, label: t(l.key) }));
   const roleLabel = (role) => (ROLE_KEY[role] ? t(ROLE_KEY[role]) : role);
@@ -199,14 +199,21 @@ export default function Navbar() {
               )}
             </div>
           ) : (
-            <div className="hidden items-center gap-2 xl:flex">
-              <Link to="/login" className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100">
-                {t("common:login")}
-              </Link>
-              <Link to="/register" className="btn-primary px-4 py-2">
-                {t("common:register")}
-              </Link>
-            </div>
+            // Guests always see Log in in the header, on every screen size (not only inside the menu).
+            // Hidden while the saved session is still being checked, so logged-in users don't see it flash.
+            !authLoading && (
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/login"
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 sm:border-transparent sm:px-4 sm:py-2"
+                >
+                  {t("common:login")}
+                </Link>
+                <Link to="/register" className="btn-primary hidden px-4 py-2 sm:inline-flex">
+                  {t("common:register")}
+                </Link>
+              </div>
+            )
           )}
 
           <button

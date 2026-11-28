@@ -16,13 +16,15 @@ const periodStart = (period) => {
 };
 
 // GET /api/donors/leaderboard?period=month|year|all&district=&bloodGroup=&limit=
-// Only donations recorded and verified by a blood bank count, so nobody can raise their own score.
+// Counts every donation completed through the platform: confirmed by the requester who received the
+// blood, or recorded by a blood bank (both stored as status "verified"). Self-reported dates don't
+// count, so nobody can raise their own score.
 export const getLeaderboard = asyncHandler(async (req, res) => {
   const period = req.query.period || "year";
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 3), 100);
   const since = periodStart(period);
 
-  const match = { status: "verified" };
+  const match = { status: "verified", source: { $ne: "self" } };
   if (since) match.donatedAt = { $gte: since };
 
   const donorFilter = { "d.showOnLeaderboard": { $ne: false } };

@@ -17,7 +17,7 @@ import { BellRing,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import MessageButton from "../components/MessageButton";
-import { getRequest, setRequestStatus, respondToRequest } from "../services/requests";
+import { getRequest, setRequestStatus, respondToRequest, getResponses } from "../services/requests";
 import { URGENCY, STATUS, normalizeRequest, isActive } from "../utils/requests";
 import { toWhatsAppNumber } from "../utils/phone";
 import { parseError } from "../utils/errors";
@@ -59,6 +59,22 @@ export default function RequestDetail() {
   const [busy, setBusy] = useState(false);
   const [units, setUnits] = useState("");
   const [showFulfil, setShowFulfil] = useState(false);
+  // Accepted donors listed in the "mark fulfilled" form, each { donorId, name, bloodGroup, checked }
+  const [fulfilDonors, setFulfilDonors] = useState(null);
+
+  function toggleFulfil() {
+    const opening = !showFulfil;
+    setShowFulfil(opening);
+    if (!opening) return;
+    setFulfilDonors(null);
+    getResponses(id)
+      .then((data) =>
+        setFulfilDonors(
+          (data.accepted || []).filter((d) => !d.donationConfirmed).map((d) => ({ ...d, checked: true }))
+        )
+      )
+      .catch(() => setFulfilDonors(null)); // the server then records every accepted donor
+  }
 
   // A result counts only if it belongs to the current request, so "loading" is worked out here
   const requestKey = `${id}|${user?.id ?? "guest"}|${version}`;
@@ -117,13 +133,21 @@ export default function RequestDetail() {
   const remaining = Math.max(r.unitsNeeded - r.fulfilledUnits, 0);
   const hospitalPoint = fromLngLat(r.coordinates);
 
-  async function changeStatus(next, fulfilledUnits) {
+  async function changeStatus(next, fulfilledUnits, donorIds) {
     setBusy(true);
     try {
-      await setRequestStatus(r.id, next, fulfilledUnits);
+      const data = await setRequestStatus(r.id, next, fulfilledUnits, donorIds);
+      const recorded = data?.donations?.recorded || 0;
       toast.success(
-        next === "fulfilled" ? t("toastFulfilled") : next === "cancelled" ? t("toastCancelled") : t("toastStatus")
+        next === "fulfilled"
+          ? recorded > 0
+            ? t("toastFulfilledDonors", { count: recorded })
+            : t("toastFulfilled")
+          : next === "cancelled"
+            ? t("toastCancelled")
+            : t("toastStatus")
       );
+      for (const f of data?.donations?.failed || []) toast.error(f.message);
       setShowFulfil(false);
       reload();
     } catch (err) {
@@ -146,7 +170,9 @@ export default function RequestDetail() {
       toast.error(t("wholeNumber", { max: r.unitsNeeded }));
       return;
     }
-    changeStatus("fulfilled", n);
+    // Only send a list once the donors have loaded; otherwise the server records every accepted donor
+    const donorIds = fulfilDonors ? fulfilDonors.filter((d) => d.checked).map((d) => d.donorId) : undefined;
+    changeStatus("fulfilled", n, donorIds);
   }
 
   async function respond(answer) {
@@ -220,7 +246,7 @@ export default function RequestDetail() {
                     <button
                       type="button"
                       disabled={busy}
-                      onClick={() => setShowFulfil((s) => !s)}
+                      onClick={toggleFulfil}
                       className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-60"
                     >
                       <CheckCircle2 size={16} />
@@ -249,6 +275,30 @@ export default function RequestDetail() {
 
                   {showFulfil && (
                     <form onSubmit={submitFulfil} className="mt-4 flex flex-wrap items-end gap-3 rounded-xl bg-gray-50 p-4">
+                      {fulfilDonors?.length > 0 && (
+                        <fieldset className="w-full">
+                          <legend className="text-sm font-medium text-gray-700">{t("whoDonated")}</legend>
+                          <p className="text-xs text-gray-500">{t("whoDonatedHint")}</p>
+                          <div className="mt-2 flex flex-col gap-2">
+                            {fulfilDonors.map((d) => (
+                              <label key={d.donorId} className="flex items-center gap-2 text-sm text-gray-800">
+                                <input
+                                  type="checkbox"
+                                  checked={d.checked}
+                                  onChange={(e) =>
+                                    setFulfilDonors((list) =>
+                                      list.map((x) => (x.donorId === d.donorId ? { ...x, checked: e.target.checked } : x))
+                                    )
+                                  }
+                                  className="h-4 w-4 accent-green-600"
+                                />
+                                <span className="font-medium">{d.name}</span>
+                                <span className="text-gray-500">{d.bloodGroup}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </fieldset>
+                      )}
                       <label className="block text-sm font-medium text-gray-700">
                         {t("unitsReceived")}
                         <input
@@ -287,7 +337,7 @@ export default function RequestDetail() {
 
               {r.isMine && active && <RequesterTripsPanel requestId={r.id} hospital={hospitalPoint} />}
 
-              <DonorMatches requestId={r.id} active={active} onChanged={reload} />
+              <DonorMatches requestId={r.id} active={active} onChanged={reload} canConfirm={r.isMine || user?.role === "admin"} />
             </>
           )}
 

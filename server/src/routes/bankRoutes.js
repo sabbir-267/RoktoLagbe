@@ -8,7 +8,7 @@ import {
 } from "../controllers/inventoryController.js";
 import { recordDonation, listBankDonations, lookupDonor } from "../controllers/donationController.js";
 import { protect, optionalAuth, authorize, requirePhone } from "../middleware/auth.js";
-import { requireBankAccess } from "../middleware/bankAccess.js";
+import { requireBankAccess, requireVerifiedBankStaff } from "../middleware/bankAccess.js";
 import { validate } from "../middleware/validate.js";
 import { BLOOD_GROUPS, normalizeBloodGroup } from "../utils/bloodGroup.js";
 import { COMPONENTS } from "../utils/shelfLife.js";
@@ -130,25 +130,25 @@ router.delete("/:id/staff/:userId", protect, authorize("admin"), ...checkId, use
 // Inventory
 router.get("/:id/stock", optionalAuth, ...checkId, getStock);
 router.get("/:id/inventory", protect, ...checkId, requireBankAccess, inventoryListRules, validate, listBatches);
-router.post("/:id/inventory", protect, ...checkId, requireBankAccess, batchRules, validate, addBatch);
+router.post("/:id/inventory", protect, ...checkId, requireVerifiedBankStaff, batchRules, validate, addBatch);
 router.post(
   "/:id/inventory/:batchId/issue",
-  protect, ...checkId, requireBankAccess, batchIdRule,
+  protect, ...checkId, requireVerifiedBankStaff, batchIdRule,
   body("units").isInt({ min: 1, max: 1000 }).withMessage("Units must be a whole number"),
   validate,
   issueUnits
 );
 router.patch(
   "/:id/inventory/:batchId",
-  protect, ...checkId, requireBankAccess, batchIdRule,
+  protect, ...checkId, requireVerifiedBankStaff, batchIdRule,
   body("status").isIn(["available", "reserved", "expired"]).withMessage("Status must be available, reserved, or expired"),
   validate,
   setBatchStatus
 );
 
 // Donations
-router.get("/:id/donors/lookup", protect, ...checkId, requireBankAccess, lookupRules, validate, lookupDonor);
+router.get("/:id/donors/lookup", protect, ...checkId, requireVerifiedBankStaff, lookupRules, validate, lookupDonor);
 router.get("/:id/donations", protect, ...checkId, requireBankAccess, pageRules, validate, listBankDonations);
-router.post("/:id/donations", protect, ...checkId, requireBankAccess, donationRules, validate, recordDonation);
+router.post("/:id/donations", protect, ...checkId, requireVerifiedBankStaff, donationRules, validate, recordDonation);
 
 export default router;

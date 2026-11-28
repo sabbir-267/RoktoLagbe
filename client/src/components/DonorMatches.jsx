@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { BadgeCheck, BellRing, MapPin, Phone, MessageCircle, RefreshCw, Users, CheckCircle2 } from "lucide-react";
-import { getMatches, notifyMatches, getResponses } from "../services/requests";
+import { BadgeCheck, BellRing, MapPin, Phone, MessageCircle, RefreshCw, Users, CheckCircle2, HeartHandshake } from "lucide-react";
+import { getMatches, notifyMatches, getResponses, confirmDonation, undoDonation } from "../services/requests";
 import { parseError } from "../utils/errors";
 import { toWhatsAppNumber } from "../utils/phone";
 import Spinner from "./Spinner";
@@ -39,8 +39,64 @@ function ContactButtons({ phone }) {
   );
 }
 
+// The requester confirms that a donor who said yes actually gave blood.
+// That resets the donor's last donation date and adds it to their donation history.
+function DonationConfirm({ requestId, donor, onDone }) {
+  const { t } = useT(requests);
+  const [busy, setBusy] = useState(false);
+
+  async function run(action) {
+    setBusy(true);
+    try {
+      if (action === "confirm") {
+        await confirmDonation(requestId, donor.donorId);
+        toast.success(t("donationConfirmedToast", { name: donor.name }));
+      } else {
+        await undoDonation(requestId, donor.donorId);
+        toast.success(t("donationUndone"));
+      }
+      onDone();
+    } catch (err) {
+      toast.error(parseError(err).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (donor.donationConfirmed) {
+    return (
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-green-100 px-3 py-2 text-sm font-semibold text-green-800">
+        <span className="flex items-center gap-1">
+          <HeartHandshake size={16} />
+          {t("donationConfirmed")}
+        </span>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => run("undo")}
+          className="text-xs font-semibold text-gray-600 underline hover:text-red-600 disabled:opacity-50"
+        >
+          {t("undo")}
+        </button>
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={() => run("confirm")}
+      title={t("confirmDonationHint")}
+      className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg border border-green-600 bg-white px-2 py-2 text-sm font-semibold text-green-700 transition hover:bg-green-50 disabled:opacity-60"
+    >
+      <HeartHandshake size={15} />
+      {t("confirmDonation")}
+    </button>
+  );
+}
+
 // Shown to the requester (and bank staff / admins) of an active request
-export default function DonorMatches({ requestId, active, onChanged }) {
+export default function DonorMatches({ requestId, active, onChanged, canConfirm = false }) {
   const { t, n: num, dist } = useT(requests);
   const [includeOther, setIncludeOther] = useState(false);
   const [version, setVersion] = useState(0);
@@ -167,6 +223,7 @@ export default function DonorMatches({ requestId, active, onChanged }) {
                 <CheckCircle2 size={17} />
                 {t("saidYes")}
               </h3>
+              {canConfirm && <p className="mt-1 text-sm text-gray-500">{t("confirmDonationHint")}</p>}
               <div className="mt-2 grid gap-3 sm:grid-cols-2">
                 {accepted.map((d) => (
                   <div key={d.donorId} className="rounded-xl border border-green-200 bg-green-50/50 p-4">
@@ -179,6 +236,9 @@ export default function DonorMatches({ requestId, active, onChanged }) {
                     </p>
                     {d.phone && <p className="mt-1 text-sm font-medium text-gray-700">{d.phone}</p>}
                     {d.phone && <ContactButtons phone={d.phone} />}
+                    {canConfirm && (
+                      <DonationConfirm requestId={requestId} donor={d} onDone={() => setVersion((v) => v + 1)} />
+                    )}
                   </div>
                 ))}
               </div>

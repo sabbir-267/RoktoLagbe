@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { Phone, Heart } from "lucide-react";
 import logo from "../assets/logo.jpeg";
 import useT from "../i18n/useT";
+import { useAuth } from "../context/AuthContext";
+import { becomeDonorLink } from "../utils/donorCta";
 import layout from "../i18n/layout";
 
 const COLUMNS = [
@@ -42,6 +44,13 @@ const COLUMNS = [
 
 export default function Footer() {
   const { t, n } = useT(layout);
+  const { user } = useAuth();
+  const donorLink = becomeDonorLink(user);
+  // "Become a donor" goes to sign-up for guests, the donor form for members, and is hidden for donors
+  const linksOf = (col) =>
+    col.links
+      .map(([to, key]) => (key === "fBecomeDonor" ? [donorLink, key] : [to, key]))
+      .filter(([to]) => to);
   return (
     <footer className="mt-16 border-t border-gray-200 bg-white">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:grid-cols-2 md:grid-cols-[1.4fr_repeat(4,1fr)]">
@@ -65,7 +74,7 @@ export default function Footer() {
           <div key={col.title}>
             <h3 className="text-sm font-semibold text-gray-900">{t(col.title)}</h3>
             <ul className="mt-3 space-y-2 text-sm">
-              {col.links.map(([to, key]) => (
+              {linksOf(col).map(([to, key]) => (
                 <li key={to}>
                   <Link to={to} className="text-gray-500 transition hover:text-brand-red">
                     {t(key)}

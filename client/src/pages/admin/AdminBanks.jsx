@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Plus, X, Users, Pencil, PackagePlus, Trash2 } from "lucide-react";
+import { Plus, X, Users, Pencil, Trash2 } from "lucide-react";
 import { listAllBanks, setBankApproval } from "../../services/admin";
 import { createBank, updateBank, listStaff, assignStaff, removeStaff } from "../../services/banks";
 import { parseError } from "../../utils/errors";
@@ -145,9 +144,6 @@ export default function AdminBanks() {
                     <button type="button" onClick={() => toggle(b.id, "staff")} className={`${smallBtn} border-gray-300 text-gray-700 hover:bg-gray-50`}>
                       <Users size={14} /> Staff
                     </button>
-                    <Link to={`/blood-banks/${b.id}/manage`} className={`${smallBtn} border-gray-300 text-gray-700 hover:bg-gray-50`}>
-                      <PackagePlus size={14} /> Stock
-                    </Link>
                   </div>
                 </div>
 

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { body, param, query } from "express-validator";
 import {
-  getStats, listUsers, updateUser, listAllBanks, setBankApproval, listAllDonors,
+  getStats, listUsers, updateUser, listAllBanks, setBankApproval, listAllDonors, getDonorDonations,
   listDoctorApplications, reviewDoctor,
 } from "../controllers/adminController.js";
 import { setVisibility } from "../controllers/consultationController.js";
@@ -75,6 +75,7 @@ router.get(
   validate,
   listAllDonors
 );
+router.get("/donors/:id/donations", [idRule], validate, getDonorDonations);
 
 router.get(
   "/doctors",

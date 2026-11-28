@@ -8,6 +8,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { normalizePhone } from "../utils/phone.js";
 import { isEligibleNow, nextEligibleDate } from "../utils/eligibility.js";
 import { defaultExpiry } from "../utils/shelfLife.js";
+import { historyFor, findSameDonation, preserveOldDate, SAME_DONATION_MS } from "../services/donationHistory.js";
 
 const DAY = 24 * 60 * 60 * 1000;
 const NO_PROFILE = "No donor profile for this phone number";
@@ -86,10 +87,25 @@ export const recordDonation = asyncHandler(async (req, res) => {
   // The eligibility check and the profile update are one atomic step, so a double submit can't record twice.
   // The gap applies on both sides because a backdated donation may come before the last recorded one.
   const gapMs = nextEligibleDate(donatedAt) - donatedAt;
+
+  // A donation the donor already entered themselves (or a requester confirmed) within a few days
+  // is the same donation. Self-reported ones are replaced by this bank record; others are duplicates.
+  const same = await findSameDonation(donor._id, donatedAt);
+  if (same && same.source !== "self") {
+    throw new ApiError(409, `A donation on ${fmtDate(same.donatedAt)} is already recorded for this donor`);
+  }
+  const sameWindow = {
+    lastDonationDate: {
+      $gte: new Date(donatedAt.getTime() - SAME_DONATION_MS),
+      $lte: new Date(donatedAt.getTime() + SAME_DONATION_MS),
+    },
+  };
+
   const prev = await DonorProfile.findOneAndUpdate(
     {
       _id: donor._id,
       $or: [
+        sameWindow,
         { lastDonationDate: null },
         { lastDonationDate: { $lte: new Date(donatedAt.getTime() - gapMs) } },
         { lastDonationDate: { $gte: new Date(donatedAt.getTime() + gapMs) } },
@@ -119,6 +135,7 @@ export const recordDonation = asyncHandler(async (req, res) => {
       bloodBank: bank._id,
       donatedAt,
       units,
+      source: "bank",
       status: "verified",
       verifiedBy: req.user._id,
     });
@@ -126,6 +143,9 @@ export const recordDonation = asyncHandler(async (req, res) => {
     await restoreProfile(prev).catch(logRollbackError);
     throw err;
   }
+  // The bank record replaces the donor's own entry for the same donation
+  if (same) await Donation.deleteOne({ _id: same._id, source: "self" }).catch(logRollbackError);
+  else if (prev.lastDonationDate) await preserveOldDate(prev._id, prev.lastDonationDate, donatedAt);
 
   let batch;
   if (addToStock) {
@@ -195,25 +215,9 @@ export const listBankDonations = asyncHandler(async (req, res) => {
   });
 });
 
-// GET /api/donors/me/donations   The logged-in donor's own history
+// GET /api/donors/me/donations   The logged-in donor's own history (all sources)
 export const listMyDonations = asyncHandler(async (req, res) => {
-  const profile = await DonorProfile.findOne({ user: req.user._id }).select("_id");
+  const profile = await DonorProfile.findOne({ user: req.user._id }).select("_id lastDonationDate");
   if (!profile) return res.json({ success: true, donations: [] });
-
-  const donations = await Donation.find({ donor: profile._id })
-    .sort({ donatedAt: -1, _id: -1 })
-    .limit(50)
-    .populate("bloodBank", "name district");
-
-  res.json({
-    success: true,
-    donations: donations.map((d) => ({
-      id: d._id,
-      bankName: d.bloodBank?.name || null,
-      bankDistrict: d.bloodBank?.district || null,
-      donatedAt: d.donatedAt,
-      units: d.units,
-      status: d.status,
-    })),
-  });
+  res.json({ success: true, donations: await historyFor(profile) });
 });

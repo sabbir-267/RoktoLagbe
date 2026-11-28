@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { ArrowLeft, PackageOpen } from "lucide-react";
+import { ArrowLeft, Clock, PackageOpen } from "lucide-react";
 import { getBank } from "../services/banks";
 import { listBatches, issueUnits, setBatchStatus } from "../services/inventory";
 import { normalizeBank, normalizeStock } from "../utils/banks";
@@ -57,6 +57,7 @@ export default function ManageStock() {
         setBankRes({
           key: bankKey,
           bank: normalizeBank(data.bank),
+          approved: data.bank?.isApproved !== false,
           stock: normalizeStock(data.stock),
           error: null,
         });
@@ -249,6 +250,29 @@ export default function ManageStock() {
   }
 
   const forbidden = batchRes.error?.response?.status === 403;
+
+  // Only verified staff (of an approved bank) can change stock; the server enforces it too
+  if (!bankStale && bankRes.bank && !bankRes.approved) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-10">
+        <h1 className="text-3xl font-bold text-brand-blue">Manage stock</h1>
+        <p className="mt-1 text-gray-500">{bankRes.bank.name}</p>
+        <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <Clock size={18} className="mt-0.5 shrink-0" />
+          <span>
+            <strong>Waiting for approval.</strong> Only verified blood bank staff can manage stock.
+            You can add and issue blood once an administrator approves your blood bank.
+          </span>
+        </div>
+        <Link
+          to="/bank-portal"
+          className="mt-6 inline-block font-semibold text-brand-red hover:underline"
+        >
+          Back to the bank portal
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">

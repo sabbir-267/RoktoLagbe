@@ -56,10 +56,10 @@ export default function VerifyEmail() {
           </p>
         )}
         <Link
-          to={user ? (ok ? "/donor-profile" : "/dashboard") : "/login"}
+          to={user ? (ok && !user.isDonor ? "/donor-profile" : "/dashboard") : "/login"}
           className="mt-6 inline-block rounded-lg bg-brand-red px-5 py-2.5 font-semibold text-white transition hover:bg-brand-red-dark"
         >
-          {user ? (ok ? t("becomeDonor") : t("goDashboard")) : t("common:login")}
+          {user ? (ok && !user.isDonor ? t("becomeDonor") : t("goDashboard")) : t("common:login")}
         </Link>
       </div>
     </div>

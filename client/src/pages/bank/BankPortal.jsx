@@ -100,12 +100,14 @@ export default function BankPortal() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link
-            to={`/blood-banks/${bank.id}/manage`}
-            className="inline-flex items-center gap-2 rounded-lg bg-brand-red px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-red-dark"
-          >
-            <PackagePlus size={18} /> Manage stock
-          </Link>
+          {isApproved && (
+            <Link
+              to={`/blood-banks/${bank.id}/manage`}
+              className="inline-flex items-center gap-2 rounded-lg bg-brand-red px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-red-dark"
+            >
+              <PackagePlus size={18} /> Manage stock
+            </Link>
+          )}
           {isApproved && (
             <Link
               to={`/blood-banks/${bank.id}`}
@@ -122,7 +124,8 @@ export default function BankPortal() {
           <Clock size={18} className="mt-0.5 shrink-0" />
           <span>
             <strong>Waiting for approval.</strong> Your blood bank is hidden from the public until an
-            administrator approves it. You can already fill in your profile and add stock.
+            administrator approves it. You can fill in your profile now; managing stock and recording
+            donations unlock once your blood bank is verified.
           </span>
         </div>
       )}
@@ -177,7 +180,7 @@ export default function BankPortal() {
         </div>
       )}
 
-      {tab === "donations" && <Donations bankId={bank.id} onRecorded={load} />}
+      {tab === "donations" && <Donations bankId={bank.id} onRecorded={load} canRecord={isApproved} />}
 
       {tab === "requests" && <NearbyRequests district={bank.district} stock={stock} />}
 
@@ -211,7 +214,7 @@ export default function BankPortal() {
   );
 }
 
-function Donations({ bankId, onRecorded }) {
+function Donations({ bankId, onRecorded, canRecord }) {
   const [page, setPage] = useState(1);
   const [refreshKey, setRefreshKey] = useState(0);
   const [res, setRes] = useState({ status: "loading", donations: [], pages: 1, error: null });
@@ -240,7 +243,13 @@ function Donations({ bankId, onRecorded }) {
 
   return (
     <div className="mt-6 space-y-6">
-      <RecordDonationForm bankId={bankId} onRecorded={handleRecorded} />
+      {canRecord ? (
+        <RecordDonationForm bankId={bankId} onRecorded={handleRecorded} />
+      ) : (
+        <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          You can record donations once an administrator approves your blood bank.
+        </p>
+      )}
 
       <section className="rounded-2xl bg-white p-6 shadow-sm">
         <div className="flex items-center gap-2 text-brand-blue">

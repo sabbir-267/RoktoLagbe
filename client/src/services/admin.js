@@ -16,3 +16,5 @@ export const listAllDonors = (params) => api.get("/admin/donors", { params }).th
 
 export const verifyDonor = (id, isVerified) =>
   api.patch(`/donors/${id}/verify`, { isVerified }).then((r) => r.data);
+
+export const getDonorDonations = (donorId) => api.get(`/admin/donors/${donorId}/donations`).then((r) => r.data);
