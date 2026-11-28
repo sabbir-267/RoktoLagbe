@@ -18,6 +18,15 @@ const userSchema = new mongoose.Schema(
     bloodBank: { type: mongoose.Schema.Types.ObjectId, ref: "BloodBank" }, // for bank_staff
     isPhoneVerified: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
+    // Two-step verification (authenticator app). Required for the roles in utils/twoFactor.js.
+    twoFactor: {
+      enabled: { type: Boolean, default: false },
+      enabledAt: Date,
+      secret: { type: String, select: false }, // encrypted (utils/secretBox.js)
+      pendingSecret: { type: String, select: false }, // during setup, until the first code is confirmed
+      backupCodes: { type: [String], select: false, default: undefined }, // sha256 hashes, each usable once
+      lastStep: { type: Number, select: false }, // last accepted time step, so a code can't be reused
+    },
   },
   { timestamps: true }
 );

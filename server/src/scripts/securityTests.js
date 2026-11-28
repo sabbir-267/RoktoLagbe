@@ -152,7 +152,8 @@ const run = async () => {
   // ---------- Mass assignment ----------
   console.log("\n— Mass assignment —");
   const other = await makeUser("Sec Other");
-  const mallory = await makeUser("Sec Mallory");
+  // Becoming a donor needs a verified email
+  const mallory = await makeUser("Sec Mallory", { email: `zz-sec-mallory-${Date.now()}@example.com`, isEmailVerified: true });
   const put = await call("PUT", "/api/donors/me", {
     token: signToken(mallory),
     body: {

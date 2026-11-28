@@ -23,27 +23,13 @@ import { listDoctors } from "../../services/doctors";
 import { listPublicAnswers, CONSULTATION_CATEGORIES } from "../../services/consultations";
 import Spinner from "../../components/Spinner";
 import Pagination from "../../components/Pagination";
+import UserAvatar from "../../components/UserAvatar";
 
 // Round photo, or the person's initials when there is no photo
 export function DoctorAvatar({ person, size = "h-12 w-12 text-base" }) {
-  if (person?.avatar) {
-    return <img src={person.avatar} alt="" referrerPolicy="no-referrer" className={`${size} shrink-0 rounded-full object-cover`} />;
-  }
-  const initials = (person?.name || "?")
-    .replace(/^dr\.?\s+/i, "")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("");
-  return (
-    <span
-      aria-hidden="true"
-      className={`${size} flex shrink-0 items-center justify-center rounded-full bg-brand-blue/10 font-semibold text-brand-blue`}
-    >
-      {initials}
-    </span>
-  );
+  // "Dr." is left out of the initials
+  const name = (person?.name || "").replace(/^dr\.?\s+/i, "");
+  return <UserAvatar name={name} src={person?.avatar} size={size} tone="blue" />;
 }
 
 // Emergency / general guidance / never pay. compact = one block for forms.

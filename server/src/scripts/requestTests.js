@@ -14,6 +14,7 @@ import { connectDB } from "../config/db.js";
 import BloodRequest from "../models/BloodRequest.js";
 import User from "../models/User.js";
 import { expireStaleRequests } from "../services/requestService.js";
+import { loginThrough2fa } from "./helpers/twoFactorLogin.js";
 
 const BASE = process.env.BASE_URL || "http://localhost:5000";
 const ADMIN_PHONE = process.env.ADMIN_PHONE || "01911111110";
@@ -79,7 +80,7 @@ const run = async () => {
   }
   await connectDB();
 
-  const adminLogin = await api("POST", "/api/auth/login", null, { phone: ADMIN_PHONE, password: ADMIN_PASSWORD });
+  const adminLogin = await loginThrough2fa(api, { phone: ADMIN_PHONE, password: ADMIN_PASSWORD });
   if (adminLogin.status !== 200 || adminLogin.data?.user?.role !== "admin") {
     throw new Error(
       `Admin login failed (status ${adminLogin.status}, role ${adminLogin.data?.user?.role}). ` +

@@ -64,7 +64,7 @@ api.interceptors.response.use(
   (res) => res,
   (error) => {
     const url = error.config?.url || "";
-    const isAuthAttempt = ["/auth/login", "/auth/register", "/auth/google", "/auth/reset-password"].some((p) =>
+    const isAuthAttempt = ["/auth/login", "/auth/register", "/auth/google", "/auth/reset-password", "/auth/2fa/"].some((p) =>
       url.includes(p)
     );
     if (
@@ -72,7 +72,7 @@ api.interceptors.response.use(
       !isAuthAttempt &&
       localStorage.getItem(TOKEN_KEY)
     ) {
-      window.dispatchEvent(new Event("auth:expired"));
+      window.dispatchEvent(new CustomEvent("auth:expired", { detail: { message: error.response?.data?.message } }));
     }
     return Promise.reject(error);
   }

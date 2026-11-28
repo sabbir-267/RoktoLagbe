@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Navigate, useLocation } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import { parseError } from "../utils/errors";
@@ -12,6 +12,7 @@ export default function Login() {
   const { user, login, loginWithGoogle } = useAuth();
   const { t } = useT(dict);
   const location = useLocation();
+  const navigate = useNavigate();
   const fromLoc = location.state?.from;
   const from = fromLoc ? `${fromLoc.pathname}${fromLoc.search || ""}` : "/dashboard";
 
@@ -27,6 +28,8 @@ export default function Login() {
   async function handleGoogle(credential) {
     try {
       const data = await loginWithGoogle(credential);
+      // Admin, doctor and bank staff accounts continue with two-step verification
+      if (data.twoFactor) return navigate("/two-step", { state: { ...data, from } });
       toast.success(data.isNewUser ? t("googleCreated") : t("welcomeBackToast"));
     } catch (err) {
       toast.error(parseError(err).message);
@@ -48,7 +51,8 @@ export default function Login() {
     try {
       const id = form.identifier.trim();
       // Phone numbers may be typed with spaces or dashes; emails are sent as typed
-      await login(id.includes("@") ? id : id.replace(/[\s-]/g, ""), form.password);
+      const data = await login(id.includes("@") ? id : id.replace(/[\s-]/g, ""), form.password);
+      if (data.twoFactor) return navigate("/two-step", { state: { ...data, from } });
       toast.success(t("welcomeBackToast"));
     } catch (err) {
       const { message, fields } = parseError(err);

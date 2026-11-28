@@ -1,6 +1,7 @@
 import express from "express";
 import { applySecurity } from "./config/security.js";
 import healthRoutes from "./routes/healthRoutes.js";
+import avatarRoutes from "./routes/avatarRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import donorRoutes from "./routes/donorRoutes.js";
 import bankRoutes from "./routes/bankRoutes.js";
@@ -21,6 +22,7 @@ applySecurity(app); // helmet, CORS, rate limit, body limits, operator rejection
 
 app.use("/api/health", healthRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/avatars", avatarRoutes);
 app.use("/api/donors", donorRoutes);
 app.use("/api/banks", bankRoutes);
 app.use("/api/requests", requestRoutes);

@@ -7,6 +7,9 @@ export const listUsers = (params) => api.get("/admin/users", { params }).then((r
 // patch: { role?: "user" | "admin", isActive?: boolean }
 export const updateUser = (id, patch) => api.patch(`/admin/users/${id}`, patch).then((r) => r.data);
 
+// For someone who lost their phone and backup codes: they set up two-step again at next login
+export const resetUserTwoFactor = (id) => api.post(`/admin/users/${id}/reset-2fa`).then((r) => r.data);
+
 export const listAllBanks = (params) => api.get("/admin/banks", { params }).then((r) => r.data);
 
 export const setBankApproval = (id, isApproved) =>

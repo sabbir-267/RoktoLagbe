@@ -45,10 +45,12 @@ export function AuthProvider({ children }) {
 
   // Triggered by the Axios interceptor when the token is rejected
   useEffect(() => {
-    const onExpired = () => {
+    const onExpired = (e) => {
       localStorage.removeItem(TOKEN_KEY);
       setUser(null);
-      toast.error(tRef.current("common:sessionExpired"));
+      // e.g. "Your account needs two-step verification. Please log in again."
+      const reason = e?.detail?.message;
+      toast.error(reason && /two-step/i.test(reason) ? reason : tRef.current("common:sessionExpired"));
     };
     window.addEventListener("auth:expired", onExpired);
     return () => window.removeEventListener("auth:expired", onExpired);
@@ -81,9 +83,12 @@ export function AuthProvider({ children }) {
   }
 
   // identifier is a phone number or an email address
+  // Admin, doctor and bank staff logins return { twoFactor, challenge } instead of a session;
+  // the caller then sends the user to /two-step. Returns the backend reply either way.
   async function login(identifier, password) {
     const { data } = await api.post("/auth/login", { identifier, password });
-    saveSession(data);
+    if (!data.twoFactor) saveSession(data);
+    return data;
   }
 
   async function register(payload) {
@@ -95,7 +100,7 @@ export function AuthProvider({ children }) {
   // Returns the backend reply so the page can check isNewUser / user.needsPhone
   async function loginWithGoogle(credential) {
     const data = await googleSignIn(credential);
-    saveSession(data);
+    if (!data.twoFactor) saveSession(data);
     return data;
   }
 

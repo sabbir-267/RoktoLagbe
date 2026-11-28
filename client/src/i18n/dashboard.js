@@ -2,6 +2,7 @@
 export default {
   en: {
     welcome: "Welcome, {name}",
+    changePicture: "Change profile picture",
     role_user: "Member",
     role_bank_staff: "Blood bank staff",
     role_admin: "Administrator",
@@ -50,6 +51,7 @@ export default {
   },
   bn: {
     welcome: "স্বাগতম, {name}",
+    changePicture: "প্রোফাইল ছবি পরিবর্তন করুন",
     role_user: "সদস্য",
     role_bank_staff: "ব্লাড ব্যাংক কর্মী",
     role_admin: "অ্যাডমিনিস্ট্রেটর",

@@ -14,6 +14,8 @@
     "test:trip": "node src/scripts/tripTests.js",
     "test:bankaccess": "node src/scripts/bankAccessTests.js",
     "test:donations": "node src/scripts/donationHistoryTests.js",
+    "test:avatar": "node src/scripts/avatarTests.js",
+    "test:2fa": "node src/scripts/twoFactorTests.js",
     "test:match": "node src/scripts/matchingUnitTests.js",
     "test:match:live": "node src/scripts/matchingTests.js",
     "test:parser": "node src/scripts/parserUnitTests.js",

@@ -9,6 +9,7 @@ import { parseError } from "../utils/errors";
 import Spinner from "../components/Spinner";
 import EmailVerifyCard from "../components/EmailVerifyCard";
 import DonationHistory from "../components/DonationHistory";
+import UserAvatar from "../components/UserAvatar";
 import useT from "../i18n/useT";
 import dict from "../i18n/dashboard";
 
@@ -65,8 +66,15 @@ export default function Dashboard() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
-      <h1 className="text-3xl font-bold text-brand-blue">{t("welcome", { name: user.name })}</h1>
-      <p className="mt-1 text-gray-500">{ROLES.includes(user.role) ? t(`role_${user.role}`) : user.role}</p>
+      <div className="flex items-center gap-4">
+        <Link to="/settings" aria-label={t("changePicture")} title={t("changePicture")} className="shrink-0">
+          <UserAvatar name={user.name} src={user.avatar} size="h-14 w-14 text-xl" tone="red" />
+        </Link>
+        <div className="min-w-0">
+          <h1 className="text-3xl font-bold text-brand-blue">{t("welcome", { name: user.name })}</h1>
+          <p className="mt-1 text-gray-500">{ROLES.includes(user.role) ? t(`role_${user.role}`) : user.role}</p>
+        </div>
+      </div>
 
       {user.needsPhone && (
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">

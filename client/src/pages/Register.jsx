@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import { parseError } from "../utils/errors";
@@ -27,6 +27,7 @@ function validate(f, t) {
 
 export default function Register() {
   const { user, register, loginWithGoogle } = useAuth();
+  const navigate = useNavigate();
   const { t } = useT(dict);
   const [form, setForm] = useState({
     name: "",
@@ -43,6 +44,8 @@ export default function Register() {
   async function handleGoogle(credential) {
     try {
       const data = await loginWithGoogle(credential);
+      // An existing admin, doctor or bank staff account continues with two-step verification
+      if (data.twoFactor) return navigate("/two-step", { state: { ...data, from: "/dashboard" } });
       toast.success(data.isNewUser ? t("googleCreated") : t("welcomeBackToast"));
     } catch (err) {
       toast.error(parseError(err).message);

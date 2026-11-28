@@ -16,6 +16,7 @@ import User from "../models/User.js";
 import BloodBank from "../models/BloodBank.js";
 import InventoryBatch from "../models/InventoryBatch.js";
 import Donation from "../models/Donation.js";
+import { loginThrough2fa } from "./helpers/twoFactorLogin.js";
 
 const BASE = process.env.BASE_URL || "http://localhost:5000";
 const PASSWORD = "password123";
@@ -69,7 +70,7 @@ const makeUser = async (label, role = "user", bloodBank) => {
     ...(bloodBank ? { bloodBank } : {}),
   });
   created.userIds.push(user._id);
-  const r = await api("POST", "/api/auth/login", null, { phone, password: PASSWORD });
+  const r = await loginThrough2fa(api, { phone, password: PASSWORD });
   if (r.status !== 200) throw new Error(`Could not log in ${label}: ${r.status} ${JSON.stringify(r.data)}`);
   return { id: String(user._id), phone, token: r.data.token };
 };

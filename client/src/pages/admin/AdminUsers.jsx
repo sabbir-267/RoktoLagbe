@@ -1,7 +1,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
-import { listUsers, updateUser } from "../../services/admin";
+import { listUsers, updateUser, resetUserTwoFactor } from "../../services/admin";
 import { parseError } from "../../utils/errors";
 import { formatDate } from "../../utils/donors";
 import SelectField from "../../components/SelectField";
@@ -10,12 +10,16 @@ import Spinner from "../../components/Spinner";
 import SearchBox from "./SearchBox";
 import usePagedList from "./usePagedList";
 
-const ROLE_LABEL = { user: "Member", bank_staff: "Bank staff", admin: "Admin" };
+const ROLE_LABEL = { user: "Member", bank_staff: "Bank staff", admin: "Admin", doctor: "Doctor" };
 const ROLE_CHIP = {
   user: "bg-gray-100 text-gray-600",
   bank_staff: "bg-blue-50 text-brand-blue",
   admin: "bg-red-50 text-brand-red",
+  doctor: "bg-green-50 text-green-700",
 };
+
+// Roles that must use two-step verification (server: utils/twoFactor.js)
+const TWO_STEP_ROLES = ["admin", "doctor", "bank_staff"];
 
 export default function AdminUsers() {
   const { user: me } = useAuth();
@@ -53,6 +57,20 @@ export default function AdminUsers() {
     apply(u, { role }, `${u.name} is now ${ROLE_LABEL[role].toLowerCase()}`);
   }
 
+  async function resetTwoStep(u) {
+    if (!window.confirm(`Reset two-step verification for ${u.name}? They'll set up their authenticator app again next time they log in. Only do this if you've confirmed who they are.`)) return;
+    setBusyId(u.id);
+    try {
+      await resetUserTwoFactor(u.id);
+      list.patchRow(u.id, { twoFactorEnabled: false });
+      toast.success(`Two-step verification reset for ${u.name}`);
+    } catch (err) {
+      toast.error(parseError(err).message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   function toggleActive(u) {
     const next = !u.isActive;
     if (!next && !window.confirm(`Deactivate ${u.name}? They will be logged out and unable to sign in.`)) return;
@@ -67,6 +85,7 @@ export default function AdminUsers() {
           <option value="">All roles</option>
           <option value="user">Members</option>
           <option value="bank_staff">Bank staff</option>
+          <option value="doctor">Doctors</option>
           <option value="admin">Admins</option>
         </SelectField>
         <SelectField label="Status" value={filters.status} onChange={(e) => change({ status: e.target.value })}>
@@ -130,8 +149,29 @@ export default function AdminUsers() {
                             <option value="user">Member</option>
                             {/* Bank staff are assigned from the Blood banks tab */}
                             {u.role === "bank_staff" && <option value="bank_staff">Bank staff</option>}
+                            {/* Doctors are approved or suspended from the Doctors tab */}
+                            {u.role === "doctor" && <option value="doctor">Doctor</option>}
                             <option value="admin">Admin</option>
                           </select>
+                        )}
+                        {TWO_STEP_ROLES.includes(u.role) && (
+                          <div className="mt-1 flex items-center gap-2 text-xs">
+                            {u.twoFactorEnabled ? (
+                              <span className="text-green-700">2-step on</span>
+                            ) : (
+                              <span className="text-amber-600">2-step not set up yet</span>
+                            )}
+                            {u.twoFactorEnabled && !isMe && (
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => resetTwoStep(u)}
+                                className="font-semibold text-gray-500 hover:text-red-600 disabled:opacity-50"
+                              >
+                                Reset
+                              </button>
+                            )}
+                          </div>
                         )}
                       </td>
                       <td className="px-4 py-3">

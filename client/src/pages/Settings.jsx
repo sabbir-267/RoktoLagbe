@@ -1,12 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
-import { KeyRound, Mail, UserRound } from "lucide-react";
+import { Camera, KeyRound, Mail, ShieldCheck, Trash2, UserRound } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { changePassword, updateProfile } from "../services/auth";
 import { parseError } from "../utils/errors";
 import FormField from "../components/FormField";
 import EmailVerifyCard from "../components/EmailVerifyCard";
+import UserAvatar from "../components/UserAvatar";
+import { uploadAvatar, removeAvatar } from "../services/avatar";
+import { squareAvatar } from "../utils/imageResize";
+import { getTwoFactorStatus, newBackupCodes } from "../services/twoFactor";
+import twoStepDict from "../i18n/twoStep";
 import usePageTitle from "../hooks/usePageTitle";
 import useT from "../i18n/useT";
 import dict from "../i18n/account";
@@ -36,6 +41,168 @@ function ReadOnlyField({ label, value, note }) {
       </div>
       {note && <div className="mt-1 text-xs text-gray-500">{note}</div>}
     </div>
+  );
+}
+
+// Two-step verification (admin, doctor and bank staff accounts): status and new backup codes
+function TwoStepSection() {
+  const { t, date } = useT(twoStepDict);
+  const [status, setStatus] = useState(null);
+  const [asking, setAsking] = useState(false);
+  const [code, setCode] = useState("");
+  const [codes, setCodes] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    getTwoFactorStatus()
+      .then((s) => active && setStatus(s))
+      .catch(() => active && setStatus(null));
+    return () => {
+      active = false;
+    };
+  }, [codes]);
+
+  async function create(e) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const data = await newBackupCodes(code.trim());
+      setCodes(data.backupCodes);
+      setAsking(false);
+      setCode("");
+    } catch (err) {
+      toast.error(parseError(err).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!status) return null;
+  return (
+    <Section icon={ShieldCheck} title={t("settingsTitle")}>
+      {status.enabled ? (
+        <>
+          <p className="text-sm text-gray-700">{t("settingsOn", { date: date(status.enabledAt) })}</p>
+          <p className="mt-1 text-sm text-gray-500">{t("backupLeft", { count: status.backupCodesLeft })}</p>
+          {codes && (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <p className="text-sm text-amber-900">{t("backupText")}</p>
+              <ol className="mt-3 grid grid-cols-2 gap-2 font-mono text-sm text-gray-900">
+                {codes.map((c) => (
+                  <li key={c}>{c}</li>
+                ))}
+              </ol>
+            </div>
+          )}
+          {asking ? (
+            <form onSubmit={create} className="mt-4 flex flex-wrap items-end gap-3">
+              <label className="block text-sm text-gray-700">
+                {t("newCodesText")}
+                <input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={7}
+                  placeholder="123456"
+                  className="mt-1 block w-36 rounded-lg border border-gray-300 px-3 py-2 font-mono tracking-widest outline-none focus:border-brand-blue focus:ring-2 focus:ring-blue-200"
+                />
+              </label>
+              <button type="submit" disabled={busy} className="btn-primary disabled:opacity-60">
+                {t("create")}
+              </button>
+              <button type="button" onClick={() => setAsking(false)} className="btn-secondary">
+                {t("cancel")}
+              </button>
+            </form>
+          ) : (
+            <button type="button" onClick={() => setAsking(true)} className="btn-secondary mt-4">
+              <KeyRound size={16} /> {t("newCodes")}
+            </button>
+          )}
+        </>
+      ) : (
+        <p className="text-sm text-gray-700">{t("settingsRequired")}</p>
+      )}
+    </Section>
+  );
+}
+
+// Profile picture: chosen photo is cropped and shrunk in the browser, then uploaded
+function PictureSection() {
+  const { user, setUser } = useAuth();
+  const { t } = useT(dict);
+  const inputRef = useRef(null);
+  const [busy, setBusy] = useState(false);
+
+  async function handleFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // choosing the same file again still triggers a change
+    if (!file) return;
+    setBusy(true);
+    try {
+      const blob = await squareAvatar(file);
+      const data = await uploadAvatar(blob);
+      setUser((u) => ({ ...u, avatar: data.avatar }));
+      toast.success(t("pictureUpdated"));
+    } catch (err) {
+      const key = { notImage: "pictureNotImage", tooBig: "pictureTooBig", cantRead: "pictureCantRead" }[err.message];
+      toast.error(key ? t(key) : parseError(err).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRemove() {
+    setBusy(true);
+    try {
+      await removeAvatar();
+      setUser((u) => ({ ...u, avatar: null }));
+      toast.success(t("pictureRemoved"));
+    } catch (err) {
+      toast.error(parseError(err).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Section icon={Camera} title={t("pictureTitle")} description={t("pictureDesc")}>
+      <div className="flex flex-wrap items-center gap-5">
+        <UserAvatar name={user.name} src={user.avatar} size="h-24 w-24 text-3xl" tone="red" />
+        <div className="flex flex-wrap gap-2">
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/*"
+            onChange={handleFile}
+            className="hidden"
+          />
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => inputRef.current?.click()}
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-red px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-red-dark disabled:opacity-60"
+          >
+            <Camera size={16} />
+            {busy ? t("pictureSaving") : user.avatar ? t("pictureChange") : t("pictureUpload")}
+          </button>
+          {user.avatar && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={handleRemove}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+            >
+              <Trash2 size={16} />
+              {t("pictureRemove")}
+            </button>
+          )}
+        </div>
+      </div>
+      <p className="mt-3 text-xs text-gray-500">{t("pictureNote")}</p>
+    </Section>
   );
 }
 
@@ -243,6 +410,8 @@ export default function Settings() {
         <p className="mt-1 text-sm text-gray-500">{t("pageSubtitle")}</p>
       </div>
 
+      <PictureSection />
+
       <ProfileSection />
 
       {hasPassword === undefined ? (
@@ -250,6 +419,8 @@ export default function Settings() {
       ) : (
         <PasswordSection hasPassword={hasPassword} onPasswordSet={() => setHasPassword(true)} />
       )}
+
+      {(user.twoFactorRequired || user.twoFactorEnabled) && <TwoStepSection />}
 
       <Section icon={Mail} title={t("common:email")} description={t("emailDesc")}>
         <EmailVerifyCard />

@@ -9,6 +9,7 @@ import RequestDetail from "./pages/RequestDetail";
 import BloodBanks from "./pages/BloodBanks";
 import BloodBankDetail from "./pages/BloodBankDetail";
 import ManageStock from "./pages/ManageStock";
+import TwoStep from "./pages/TwoStep";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -71,6 +72,7 @@ export default function App() {
         <Route path="/consultations/:id" element={<ProtectedRoute><ConsultationDetail /></ProtectedRoute>} />
         <Route path="/doctor-portal" element={<ProtectedRoute roles={["doctor"]}><DoctorPortal /></ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
+        <Route path="/two-step" element={<TwoStep />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />

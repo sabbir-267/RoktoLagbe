@@ -7,7 +7,10 @@ export const errorHandler = (err, req, res, next) => {
   let status = err.statusCode || (res.statusCode !== 200 ? res.statusCode : 500);
   let message = err.message || "Server error";
 
-  if (err.code === 11000) {
+  if (err.type === "entity.too.large") {
+    status = 413;
+    message = "That file is too large";
+  } else if (err.code === 11000) {
     status = 409;
     message = `${Object.keys(err.keyValue || {})[0] || "Value"} already exists`;
   } else if (err.name === "ValidationError") {

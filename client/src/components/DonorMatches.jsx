@@ -5,6 +5,7 @@ import { getMatches, notifyMatches, getResponses, confirmDonation, undoDonation 
 import { parseError } from "../utils/errors";
 import { toWhatsAppNumber } from "../utils/phone";
 import Spinner from "./Spinner";
+import UserAvatar from "./UserAvatar";
 import useT from "../i18n/useT";
 import requests from "../i18n/requests";
 
@@ -227,7 +228,8 @@ export default function DonorMatches({ requestId, active, onChanged, canConfirm 
               <div className="mt-2 grid gap-3 sm:grid-cols-2">
                 {accepted.map((d) => (
                   <div key={d.donorId} className="rounded-xl border border-green-200 bg-green-50/50 p-4">
-                    <p className="flex items-center gap-1 font-semibold text-gray-900">
+                    <p className="flex items-center gap-2 font-semibold text-gray-900">
+                      <UserAvatar name={d.name} src={d.avatar} size="h-8 w-8 text-xs" />
                       {d.name}
                       {d.isVerified && <BadgeCheck size={16} className="text-brand-blue" aria-label={t("verifiedDonor")} />}
                     </p>

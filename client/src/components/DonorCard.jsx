@@ -14,6 +14,7 @@ import { toWhatsAppNumber } from "../utils/phone";
 import MessageButton from "./MessageButton";
 import useT from "../i18n/useT";
 import donors from "../i18n/donors";
+import UserAvatar from "./UserAvatar";
 
 export default function DonorCard({ donor, loggedIn }) {
   const location = useLocation();
@@ -32,8 +33,18 @@ export default function DonorCard({ donor, loggedIn }) {
   return (
     <article className="flex flex-col rounded-2xl bg-white p-5 shadow-sm transition hover:shadow-md">
       <div className="flex items-start gap-4">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-xl font-extrabold text-brand-red">
-          {donor.bloodGroup}
+        <div className="relative shrink-0">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-xl font-extrabold text-brand-red">
+            {donor.bloodGroup}
+          </div>
+          {donor.avatar && (
+            <UserAvatar
+              name={donor.name}
+              src={donor.avatar}
+              size="h-8 w-8 text-xs"
+              className="absolute -bottom-2 -right-2 ring-2 ring-white"
+            />
+          )}
         </div>
 
         <div className="min-w-0 flex-1">

@@ -42,6 +42,7 @@ export function normalizeDonor(raw) {
   return {
     id: raw.id || raw._id,
     name: raw.name || "Donor",
+    avatar: raw.avatar || raw.user?.avatar || "",
     phone: raw.phone || "",
     bloodGroup: raw.bloodGroup || "",
     gender: raw.gender || "",

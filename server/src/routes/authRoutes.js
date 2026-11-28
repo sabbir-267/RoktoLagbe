@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { body } from "express-validator";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import {
   register,
   login,
@@ -16,7 +16,11 @@ import {
   verifyEmail,
   forgotPasswordEmail,
   resetPasswordEmail,
+  enableTwoFactorLogin,
+  verifyTwoFactorLogin,
 } from "../controllers/authController.js";
+import { setupTwoFactor, regenerateBackupCodes, twoFactorStatus } from "../controllers/twoFactorController.js";
+import { readChallenge } from "../utils/token.js";
 import { protect } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
 import { normalizePhone } from "../utils/phone.js";
@@ -115,6 +119,28 @@ router.post("/google/link", authLimiter, protect, [credentialRule], validate, li
 router.patch("/phone", protect, [phoneRule], validate, setPhone);
 
 router.get("/me", protect, getMe);
+
+// ---------- Two-step verification (controllers/twoFactorController.js) ----------
+// Code guesses are limited per account (not per IP), so a 6-digit code can't be brute-forced
+const codeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const id = readChallenge(req.body?.challenge)?.id || req.user?._id;
+    return id ? `2fa:${id}` : `ip:${ipKeyGenerator(req.ip || "")}`;
+  },
+  message: { success: false, message: "Too many wrong codes. Please wait 15 minutes and log in again." },
+});
+const challengeRule = body("challenge").isString().notEmpty().withMessage("Please log in again");
+const codeRule = body("code").isString().trim().isLength({ min: 6, max: 20 }).withMessage("Enter the code");
+
+router.post("/2fa/setup", authLimiter, [challengeRule], validate, setupTwoFactor);
+router.post("/2fa/enable", codeLimiter, [challengeRule, codeRule], validate, enableTwoFactorLogin);
+router.post("/2fa/verify", codeLimiter, [challengeRule, codeRule], validate, verifyTwoFactorLogin);
+router.get("/2fa/status", protect, twoFactorStatus);
+router.post("/2fa/backup-codes", protect, codeLimiter, [codeRule], validate, regenerateBackupCodes);
 
 // ---------- Account settings ----------
 router.patch(

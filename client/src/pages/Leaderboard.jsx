@@ -10,6 +10,7 @@ import SelectField from "../components/SelectField";
 import Spinner from "../components/Spinner";
 import useT from "../i18n/useT";
 import dict from "../i18n/leaderboard";
+import UserAvatar from "../components/UserAvatar";
 
 const PERIODS = [
   { key: "month", label: "periodMonth", phrase: "phraseMonth" },
@@ -37,20 +38,7 @@ function Badge({ count }) {
 }
 
 function Avatar({ person, size = "h-10 w-10 text-sm" }) {
-  if (person.avatar) {
-    return <img src={person.avatar} alt="" referrerPolicy="no-referrer" className={`${size} shrink-0 rounded-full object-cover`} />;
-  }
-  const initials = person.name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("");
-  return (
-    <span className={`${size} flex shrink-0 items-center justify-center rounded-full bg-red-50 font-bold text-brand-red`}>
-      {initials || "?"}
-    </span>
-  );
+  return <UserAvatar name={person?.name} src={person?.avatar} size={size} tone="soft" />;
 }
 
 const PODIUM = {

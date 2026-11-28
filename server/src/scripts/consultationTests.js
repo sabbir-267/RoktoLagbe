@@ -16,6 +16,7 @@ import User from "../models/User.js";
 import DoctorProfile from "../models/DoctorProfile.js";
 import Consultation from "../models/Consultation.js";
 import Notification from "../models/Notification.js";
+import { loginThrough2fa } from "./helpers/twoFactorLogin.js";
 
 const BASE = process.env.BASE_URL || "http://localhost:5000";
 const PASSWORD = "password123";
@@ -70,7 +71,7 @@ const makeUser = async (label, role = "user") => {
     role,
   });
   created.userIds.push(user._id);
-  const r = await api("POST", "/api/auth/login", null, { phone, password: PASSWORD });
+  const r = await loginThrough2fa(api, { phone, password: PASSWORD });
   if (r.status !== 200) throw new Error(`Could not log in ${label}: ${r.status} ${JSON.stringify(r.data)}`);
   return { id: String(user._id), phone, name: user.name, token: r.data.token };
 };
@@ -169,6 +170,15 @@ const run = async () => {
   const roles = await User.find({ _id: { $in: [doc1.id, doc2.id] } }).select("role").lean();
   check('10   both users now have role "doctor"', roles.length === 2 && roles.every((u) => u.role === "doctor"),
     roles.map((u) => u.role).join(","));
+  // Doctors need two-step verification: their old session stops working until they log in again
+  const stale = await api("GET", "/api/auth/me", doc1.token);
+  check("10   newly approved doctor's old session needs two-step login (401)", stale.status === 401 && /two-step/.test(stale.data?.message || ""),
+    `status ${stale.status} ${stale.data?.message}`);
+  for (const d of [doc1, doc2]) {
+    const again = await loginThrough2fa(api, { phone: d.phone, password: PASSWORD });
+    if (again.status !== 200 || !again.data?.token) throw new Error(`Doctor re-login failed: ${again.status} ${JSON.stringify(again.data)}`);
+    d.token = again.data.token;
+  }
   const appNote = await Notification.findOne({ user: doc1.id, type: "consultation" }).lean();
   check("10   applicant gets a consultation notification with a link", appNote?.link === "/doctor-portal", JSON.stringify(appNote));
 

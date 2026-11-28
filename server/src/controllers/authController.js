@@ -15,6 +15,8 @@ import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { normalizePhone } from "../utils/phone.js";
 import { signToken } from "../utils/token.js";
+import { requiresTwoFactor } from "../utils/twoFactor.js";
+import { sessionOrChallenge, enableTwoFactor, verifyTwoFactor } from "./twoFactorController.js";
 
 // `extra` carries fields that depend on data not always loaded, e.g. { hasPassword }
 // (passwordHash is select:false, so it can only be reported where it was actually checked)
@@ -28,6 +30,8 @@ const publicUser = (u, extra = {}) => ({
   bloodBank: u.bloodBank || null, // id of the bank a bank_staff member works at
   isEmailVerified: !!u.isEmailVerified,
   needsPhone: !u.phone,
+  twoFactorRequired: requiresTwoFactor(u),
+  twoFactorEnabled: !!u.twoFactor?.enabled,
   ...extra,
 });
 
@@ -136,7 +140,8 @@ export const login = asyncHandler(async (req, res) => {
   const ok = user && user.passwordHash && (await bcrypt.compare(password, user.passwordHash));
   if (!ok || !user.isActive) throw new ApiError(401, "Invalid phone/email or password");
 
-  res.json({ success: true, token: signToken(user), user: publicUser(user, { isDonor: await isDonor(user._id) }) });
+  // Admin, doctor and bank staff accounts get a two-step challenge instead of a session
+  res.json(sessionOrChallenge(user, publicUser, { isDonor: await isDonor(user._id) }));
 });
 
 export const googleLogin = asyncHandler(async (req, res) => {
@@ -181,9 +186,7 @@ export const googleLogin = asyncHandler(async (req, res) => {
   if (!user.isActive) throw new ApiError(401, "Account is deactivated");
 
   res.status(isNewUser ? 201 : 200).json({
-    success: true,
-    token: signToken(user),
-    user: publicUser(user, { isDonor: isNewUser ? false : await isDonor(user._id) }),
+    ...sessionOrChallenge(user, publicUser, { isDonor: isNewUser ? false : await isDonor(user._id) }),
     isNewUser,
   });
 });
@@ -276,7 +279,7 @@ export const changePassword = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    token: signToken(user),
+    token: signToken(user, { mfa: req.user.$locals.mfa }), // keeps this session's two-step status
     user: publicUser(user, { hasPassword: true }),
     message: hadPassword ? "Password changed" : "Password set. You can now also log in with your password.",
   });
@@ -451,3 +454,7 @@ export const resetPasswordEmail = asyncHandler(async (req, res) => {
     message: "Password updated. You can now log in with your phone number or email and new password.",
   });
 });
+
+// Two-step verification steps that finish a login (controllers/twoFactorController.js)
+export const enableTwoFactorLogin = enableTwoFactor(publicUser);
+export const verifyTwoFactorLogin = verifyTwoFactor(publicUser, async (u) => ({ isDonor: await isDonor(u._id) }));

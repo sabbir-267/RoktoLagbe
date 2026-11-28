@@ -4,6 +4,7 @@ import { Marker, Tooltip } from "react-leaflet";
 import { Navigation, Phone, MapPinned, Maximize2, Pencil, Hospital } from "lucide-react";
 import BaseMap, { FitPoints } from "../map/BaseMap";
 import LocationPicker from "../map/LocationPicker";
+import UserAvatar from "../UserAvatar";
 import { hospitalIcon, donorIcon, initials } from "../map/icons";
 import { isPoint, toPoint, formatDistance, formatEta, formatAgo } from "../map/geo";
 import { getTrips, updateRequestLocation } from "../../services/trips";
@@ -226,16 +227,7 @@ export default function RequesterTripsPanel({ requestId, hospital: requestHospit
                 const when = tr.status === "on_the_way" ? tr.updatedAt : tr.endedAt || tr.updatedAt;
                 return (
                   <li key={donorKey(tr)} className="flex flex-wrap items-center gap-3 py-3">
-                    {tr.avatar ? (
-                      <img src={tr.avatar} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" referrerPolicy="no-referrer" />
-                    ) : (
-                      <span
-                        aria-hidden="true"
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-brand-blue"
-                      >
-                        {initials(tr.name)}
-                      </span>
-                    )}
+                    <UserAvatar name={tr.name} src={tr.avatar} tone="blue" />
                     <div className="min-w-0 flex-1">
                       <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-gray-800">
                         <span className="break-words">{tr.name || t("donor")}</span>

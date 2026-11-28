@@ -11,6 +11,7 @@ import { parseError } from "../utils/errors";
 import Spinner from "../components/Spinner";
 import useT from "../i18n/useT";
 import dict from "../i18n/messages";
+import UserAvatar from "../components/UserAvatar";
 
 const MAX_LEN = 2000;
 const TYPING_SEND_MS = 2500; // send at most one "typing" hint this often
@@ -19,20 +20,7 @@ const TYPING_SHOW_MS = 4000; // hide the indicator if no new hint arrives
 const sameId = (a, b) => String(a) === String(b);
 
 function Avatar({ person, size = "h-10 w-10 text-sm" }) {
-  if (person?.avatar) {
-    return <img src={person.avatar} alt="" referrerPolicy="no-referrer" className={`${size} shrink-0 rounded-full object-cover`} />;
-  }
-  const initials = (person?.name || "?")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("");
-  return (
-    <span className={`${size} flex shrink-0 items-center justify-center rounded-full bg-brand-blue/10 font-semibold text-brand-blue`}>
-      {initials}
-    </span>
-  );
+  return <UserAvatar name={person?.name} src={person?.avatar} size={size} tone="blue" />;
 }
 
 function shortTime(v, locale) {

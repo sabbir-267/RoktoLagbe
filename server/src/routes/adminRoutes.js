@@ -5,6 +5,7 @@ import {
   listDoctorApplications, reviewDoctor,
 } from "../controllers/adminController.js";
 import { setVisibility } from "../controllers/consultationController.js";
+import { adminResetTwoFactor } from "../controllers/twoFactorController.js";
 import { DOCTOR_STATUSES } from "../models/DoctorProfile.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
@@ -76,6 +77,7 @@ router.get(
   listAllDonors
 );
 router.get("/donors/:id/donations", [idRule], validate, getDonorDonations);
+router.post("/users/:id/reset-2fa", [idRule], validate, adminResetTwoFactor);
 
 router.get(
   "/doctors",

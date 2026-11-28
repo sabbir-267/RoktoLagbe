@@ -10,6 +10,7 @@ import { useMessages } from "../context/MessagesContext";
 import { useAuth } from "../context/AuthContext";
 import NotificationBell from "./NotificationBell";
 import logo from "../assets/logo.jpeg";
+import UserAvatar from "./UserAvatar";
 
 const LINKS = [
   { to: "/donors", key: "navDonors" },
@@ -22,20 +23,7 @@ const LINKS = [
 const ROLE_KEY = { user: "roleUser", bank_staff: "roleStaff", admin: "roleAdmin", doctor: "roleDoctor" };
 
 function Avatar({ user, size = "h-8 w-8 text-sm" }) {
-  if (user.avatar) {
-    return <img src={user.avatar} alt="" referrerPolicy="no-referrer" className={`${size} rounded-full object-cover`} />;
-  }
-  const initials = user.name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("");
-  return (
-    <span className={`${size} flex items-center justify-center rounded-full bg-brand-red font-semibold text-white`}>
-      {initials || "?"}
-    </span>
-  );
+  return <UserAvatar name={user?.name} src={user?.avatar} size={size} tone="red" />;
 }
 
 export default function Navbar() {

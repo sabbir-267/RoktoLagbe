@@ -30,6 +30,7 @@ const toAdminUser = (u) => ({
   phone: u.phone,
   email: u.email,
   role: u.role,
+  twoFactorEnabled: !!u.twoFactor?.enabled,
   isActive: u.isActive,
   isEmailVerified: !!u.isEmailVerified,
   hasGoogle: !!u.googleId,
